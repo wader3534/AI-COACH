@@ -20,24 +20,27 @@ def get_db():
     return conn.read(ttl=0)
 
 # ================= 2. 登入與註冊畫面 =================
+# ================= 2. 登入與註冊畫面 =================
 if not st.session_state.logged_in:
     st.title("🛡️ 捷出青年班實戰系統")
     st.subheader("請登入以開始 AI 訓練挑戰")
     
     tab1, tab2 = st.tabs(["🔑 帳號登入", "📝 新隊員註冊"])
+    
+    # 這裡呼叫我們剛才改好的 get_db()
     df = get_db()
 
-   with tab1:
+    with tab1:
         login_user = st.text_input("帳號 (ID)")
         login_pw = st.text_input("密碼", type="password")
+        
         if st.button("進入道館"):
-            # --- 修正後的比對邏輯 ---
-            # 強制將試算表欄位與輸入內容都轉為字串，避免數字與文字比對失敗
-            df['username'] = df['username'].astype(str)
-            df['password'] = df['password'].astype(str)
+            # 取得處理過的乾淨字串
+            user_val = str(login_user).strip()
+            pw_val = str(login_pw).strip()
             
-            match = df[(df['username'] == str(login_user)) & (df['password'] == str(login_pw))]
-            # -----------------------
+            # 比對資料庫
+            match = df[(df['username'] == user_val) & (df['password'] == pw_val)]
             
             if not match.empty:
                 st.session_state.logged_in = True
@@ -45,22 +48,29 @@ if not st.session_state.logged_in:
                 st.success(f"歡迎回來，{st.session_state.user_data['display_name']}！")
                 st.rerun()
             else:
-                st.error("帳號或密碼錯誤。")
+                st.error("帳號或密碼錯誤，請檢查 0 開頭問題或聯絡主管。")
 
     with tab2:
-        reg_user = st.text_input("設定帳號 (建議手機或 Email)")
+        st.write("填寫資訊建立戰士檔案：")
+        reg_user = st.text_input("設定帳號")
         reg_pw = st.text_input("設定密碼", type="password")
-        reg_name = st.text_input("您的顯示名稱 (暱稱)")
+        reg_name = st.text_input("顯示名稱 (暱稱)")
+        
         if st.button("完成註冊"):
             if not reg_user or not reg_pw or not reg_name:
                 st.warning("請填寫所有欄位！")
-            elif reg_user in df['username'].astype(str).values:
+            elif str(reg_user).strip() in df['username'].values:
                 st.error("此帳號已被註冊。")
             else:
-                new_row = pd.DataFrame([{"username": reg_user, "password": str(reg_pw), "display_name": reg_name, "exp": 0}])
+                new_row = pd.DataFrame([{
+                    "username": str(reg_user).strip(),
+                    "password": str(reg_pw).strip(),
+                    "display_name": str(reg_name).strip(),
+                    "exp": 0
+                }])
                 updated_df = pd.concat([df, new_row], ignore_index=True)
                 conn.update(data=updated_df)
-                st.success("註冊成功！請切換到登入分頁。")
+                st.success("註冊成功！請切換到登入頁面。")
     st.stop()
 
 # ================= 3. 題庫設定 (Levels 題庫) =================
