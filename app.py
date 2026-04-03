@@ -174,7 +174,10 @@ if user_input := st.chat_input("請輸入你的元捷實戰話術..."):
                     st.success("🔥 創下個人最高得分紀錄！")
                 
                 if earned_exp >= 80: st.balloons()
-                st.button("同步至元捷英雄榜", on_click=lambda: st.rerun())
+                
+                # --- 修正後的更新按鈕：不使用 callback，直接判斷點擊 ---
+                if st.button("同步至元捷英雄榜"):
+                    st.rerun()
 
     except Exception as e:
         st.error(f"系統連線異常：{e}")
