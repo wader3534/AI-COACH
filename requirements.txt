@@ -1,3 +1,4 @@
 streamlit
 google-generativeai
-requirements.txt
+streamlit-gsheets
+pandas
