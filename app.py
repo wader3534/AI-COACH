@@ -168,14 +168,31 @@ if user_input := st.chat_input("請輸入你的實戰話術..."):
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
                 
                 # 實戰點數更新
-                st.session_state.user_data['exp'] += 100
+           # --- 1. 從 AI 回覆中精準抓取分數 ---
+                import re
+                # 尋找回覆中的數字 (例如：78)
+                scores = re.findall(r'\d+', response.text)
+                # 如果有找到數字，取第一個當作得分；沒找到就保底給 60 分
+                earned_exp = int(scores[0]) if scores else 60
+                
+                # 限定分數區間在 0-100 之間，避免 AI 亂給分
+                earned_exp = max(0, min(100, earned_exp))
+
+                # --- 2. 更新 Session 狀態 (讓網頁即時跳動) ---
+                st.session_state.user_data['exp'] += earned_exp
+                
+                # --- 3. 同步回傳 Google 試算表 ---
                 all_db = get_db()
                 u_id = str(st.session_state.user_data['username'])
+                # 確保存進去的是加總後的總分
                 all_db.loc[all_db['username'].astype(str) == u_id, 'exp'] = str(st.session_state.user_data['exp'])
                 conn.update(data=all_db)
-                # 更新存檔後，立刻叫網頁「重新整理」抓取新分數
-                st.session_state.user_data['exp'] = int(st.session_state.user_data['exp'])
-                st.rerun()
+                
+                # --- 4. 顯示獲勝訊息並噴氣球 ---
+                st.success(f"🎯 本次實戰表現：{earned_exp} 分！經驗值已累加。")
                 st.balloons()
+                
+                # 強制畫面重整，讓側邊欄的分數立刻變動
+                st.rerun()
     except Exception as e:
         st.error(f"系統異常：{e}")
