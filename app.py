@@ -136,8 +136,11 @@ for msg in st.session_state.messages:
 
 if user_input := st.chat_input("請輸入你的實戰話術..."):
     try:
+        # 配置 AI
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        # 使用最穩定的模型完整路徑
+        model = genai.GenerativeModel('models/gemini-1.5-flash')
         
         st.session_state.messages.append({"role": "user", "content": user_input})
         with st.chat_message("user"):
