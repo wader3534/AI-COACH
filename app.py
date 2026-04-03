@@ -2,11 +2,12 @@ import streamlit as st
 import google.generativeai as genai
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
+import re
 
 # ================= 1. 網頁基礎設定 =================
 st.set_page_config(page_title="捷出青年班 AI 競賽區", page_icon="🏆", layout="wide")
 
-# 初始化 Session State (儲存登入狀態)
+# 初始化 Session State (儲存登入與對話狀態)
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "user_data" not in st.session_state:
@@ -18,7 +19,7 @@ if "messages" not in st.session_state:
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 def get_db():
-    """讀取資料庫並強制轉換為字串格式，解決 0 開頭密碼問題"""
+    """讀取資料庫並強制轉換為字串格式，解決 0 開頭密碼與小數點問題"""
     try:
         df = conn.read(ttl=0)
         # 強制轉文字並處理掉 .0 的問題
@@ -51,6 +52,7 @@ if not st.session_state.logged_in:
                 st.session_state.logged_in = True
                 user_info = match.iloc[0].to_dict()
                 try:
+                    # 確保 EXP 讀取進來時是整數
                     user_info['exp'] = int(float(user_info.get('exp', 0)))
                 except:
                     user_info['exp'] = 0
@@ -66,7 +68,6 @@ if not st.session_state.logged_in:
         reg_pw = st.text_input("設定密碼", type="password", key="r_pw")
         reg_name = st.text_input("您的暱稱", key="r_name")
         
-        # 修正語法錯誤的關鍵行
         if st.button("完成註冊", key="reg_btn"):
             u_reg = str(reg_user).strip()
             if not reg_user or not reg_pw or not reg_name:
@@ -134,39 +135,63 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-with st.chat_message("assistant"):
+if user_input := st.chat_input("請輸入你的實戰話術..."):
+    try:
+        # 配置 AI 模型
+        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+        model = genai.GenerativeModel('models/gemini-1.5-flash')
+        
+        st.session_state.messages.append({"role": "user", "content": user_input})
+        with st.chat_message("user"):
+            st.markdown(user_input)
+
+        # 組合 Prompt 指令
+        prompt = f"""
+        你現在是南山人壽「捷出青年班」的首席實戰教練。
+        學員：{st.session_state.user_data['display_name']}
+        目前挑戰的反對問題：{curr['objection']}
+        學員的回覆話術：{user_input}
+        
+        請根據以下教材邏輯進行評分與講評：
+        {curr['logic']}
+        
+        輸出格式規範：
+        1. 【辨識邏輯】：分析學員使用了哪種處理技巧。
+        2. 【教練評分】：評分(1-100)。(請務必包含「評分：XX」字樣)
+        3. 【實戰講評】：指出優缺點，提供示範金句。
+        """
+
+        with st.chat_message("assistant"):
             with st.spinner("教練評分中..."):
                 response = model.generate_content(prompt)
                 res_text = response.text
                 st.markdown(res_text)
                 st.session_state.messages.append({"role": "assistant", "content": res_text})
                 
-                # --- 1. 精準抓取分數 (排除關卡編號) ---
-                import re
-                # 尋找「評分：XX」或「分數：XX」後面的數字
+                # --- 精準抓取分數 ---
                 score_match = re.search(r'(評分|分數|Score)[:：\s]*(\d+)', res_text)
-                
                 if score_match:
                     earned_exp = int(score_match.group(2))
                 else:
-                    # 如果 AI 沒按格式給分，再嘗試找最後一個數字 (通常是得分)
-                    all_numbers = re.findall(r'\d+', res_text)
-                    earned_exp = int(all_numbers[-1]) if all_numbers else 60
+                    # 備案：找最後一個數字
+                    nums = re.findall(r'\d+', res_text)
+                    earned_exp = int(nums[-1]) if nums else 60
                 
-                # 限制在合理區間
+                # 限制分數合理性
                 earned_exp = max(0, min(100, earned_exp))
 
-                # --- 2. 顯示超大字體評分 ---
-                # 使用 HTML 語法讓字體變大、變紅、加粗
+                # --- 顯示超大字體評分板 ---
                 st.markdown(f"""
-                    <div style="text-align: center; border: 2px solid #FFA500; padding: 20px; border-radius: 10px;">
-                        <h3 style="color: #666;">本次實戰表現</h3>
-                        <h1 style="font-size: 72px; color: #FF4B4B; margin: 0;">{earned_exp} <span style="font-size: 24px;">分</span></h1>
+                    <div style="text-align: center; border: 3px solid #FFA500; padding: 20px; border-radius: 15px; background-color: #FFF5E6; margin-top: 20px;">
+                        <h3 style="color: #666; margin-bottom: 5px;">🏆 教練實戰評鑑</h3>
+                        <h1 style="font-size: 80px; color: #FF4B4B; margin: 0; font-family: sans-serif;">{earned_exp} <span style="font-size: 24px;">分</span></h1>
                     </div>
                 """, unsafe_allow_html=True)
 
-                # --- 3. 更新數據與存檔 ---
+                # --- 更新分數並存檔 ---
                 st.session_state.user_data['exp'] += earned_exp
+                
+                # 同步回傳 Google Sheets
                 all_db = get_db()
                 u_id = str(st.session_state.user_data['username'])
                 all_db.loc[all_db['username'].astype(str) == u_id, 'exp'] = str(st.session_state.user_data['exp'])
@@ -175,42 +200,8 @@ with st.chat_message("assistant"):
                 if earned_exp >= 80:
                     st.balloons()
                 
-                # 停頓一下讓學員看清楚分數，然後重新整理更新側邊欄
-                if st.button("確認分數並更新排行榜"):
-                    st.rerun()
+                # 重新整理更新側邊欄
+                st.button("確認成績並更新排行榜", on_click=lambda: st.rerun())
 
-        with st.chat_message("assistant"):
-            with st.spinner("教練評分中..."):
-                response = model.generate_content(prompt)
-                st.markdown(response.text)
-                st.session_state.messages.append({"role": "assistant", "content": response.text})
-                
-                # 實戰點數更新
-           # --- 1. 從 AI 回覆中精準抓取分數 ---
-                import re
-                # 尋找回覆中的數字 (例如：78)
-                scores = re.findall(r'\d+', response.text)
-                # 如果有找到數字，取第一個當作得分；沒找到就保底給 60 分
-                earned_exp = int(scores[0]) if scores else 60
-                
-                # 限定分數區間在 0-100 之間，避免 AI 亂給分
-                earned_exp = max(0, min(100, earned_exp))
-
-                # --- 2. 更新 Session 狀態 (讓網頁即時跳動) ---
-                st.session_state.user_data['exp'] += earned_exp
-                
-                # --- 3. 同步回傳 Google 試算表 ---
-                all_db = get_db()
-                u_id = str(st.session_state.user_data['username'])
-                # 確保存進去的是加總後的總分
-                all_db.loc[all_db['username'].astype(str) == u_id, 'exp'] = str(st.session_state.user_data['exp'])
-                conn.update(data=all_db)
-                
-                # --- 4. 顯示獲勝訊息並噴氣球 ---
-                st.success(f"🎯 本次實戰表現：{earned_exp} 分！經驗值已累加。")
-                st.balloons()
-                
-                # 強制畫面重整，讓側邊欄的分數立刻變動
-                st.rerun()
     except Exception as e:
-        st.error(f"系統異常：{e}")
+        st.error(f"系統異常，請稍後再試：{e}")
