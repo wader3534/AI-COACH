@@ -5,7 +5,7 @@ import pandas as pd
 import re
 
 # ================= 1. 網頁基礎設定 =================
-st.set_page_config(page_title="元捷 AI 實戰與主管萬事通 V16.5", page_icon="🛡️", layout="wide")
+st.set_page_config(page_title="元捷 AI 實戰與主管萬事通 V17.0", page_icon="🛡️", layout="wide")
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -44,10 +44,22 @@ if not st.session_state.logged_in:
                 user_info['exp'] = int(float(user_info.get('exp', 0)))
                 st.session_state.user_data = user_info
                 st.rerun()
+            else:
+                st.error("❌ 帳號或密碼錯誤。")
+    with tab2:
+        reg_user = st.text_input("設定帳號", key="r_user")
+        reg_pw = st.text_input("設定密碼", type="password", key="r_pw")
+        reg_name = st.text_input("您的暱稱", key="r_name")
+        if st.button("完成註冊"):
+            if not reg_user or not reg_pw or not reg_name:
+                st.warning("請填寫所有欄位")
+            else:
+                new_row = pd.DataFrame([{"username": reg_user.strip(), "password": reg_pw.strip(), "display_name": reg_name.strip(), "exp": "0"}])
+                conn.update(data=pd.concat([db_df, new_row], ignore_index=True))
+                st.success("🎉 註冊成功！請切換到登入分頁。")
     st.stop()
 
 # ================= 3. 【元捷大腦：頂規詳盡知識庫】 =================
-# 威德教官！這裡封裝了你提供的所有超過 5000 字的教材精華！
 YUANJIE_BRAIN = """
 ### 元捷實戰大百科：深度實戰分析與邏輯庫
 
@@ -111,7 +123,7 @@ YUANJIE_BRAIN = """
 【地雷紅線】：嚴禁說底薪、嚴禁私下金流、嚴禁低保額規劃、嚴禁代簽、嚴禁節稅不實招攬。
 """
 
-# ================= 4. 主畫面 AI 邏輯 (防 404 版) =================
+# ================= 4. 主畫面 AI 邏輯 =================
 with st.sidebar:
     st.title("👤 元捷智慧大腦")
     st.metric("🏆 個人戰績", f"{st.session_state.user_data['exp']} 分")
@@ -122,67 +134,89 @@ with st.sidebar:
     if st.button("🔄 清空對話"):
         st.session_state.messages = []
         st.rerun()
+    if st.button("🚪 登出系統"):
+        st.session_state.logged_in = False
+        st.rerun()
 
 st.title(mode)
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]): st.markdown(msg["content"])
 
 if user_input := st.chat_input("在此輸入..."):
-    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    
-    # 防 404 名稱輪替機制
-    model = None
-    for name in ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'models/gemini-1.5-flash']:
-        try:
-            model = genai.GenerativeModel(name)
-            model.generate_content("test", generation_config={"max_output_tokens": 1})
-            break
-        except: continue
-    
-    if not model:
-        st.error("❌ 模型連線異常")
-        st.stop()
-
-    st.session_state.messages.append({"role": "user", "content": user_input})
-    with st.chat_message("user"): st.markdown(user_input)
-
-    if mode == "⚔️ 反對問題實戰演練":
-        prompt = f"""
-        你現在是南山元捷教官。
-        你的腦中有最詳盡的元捷教材：{YUANJIE_BRAIN}
+    try:
+        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
         
-        針對反對情境「{selected_mod}」，學員回答：「{user_input}」。
-        請嚴格按照以下規範：
-        1. 【評分】：0-100。
-        2. 【深度實戰講評】：字數 400 字以上。分析學員是否命中教材細節（如印鈔機、4321、FACT A環節、同步語辭）。
-        3. 【地雷紅線】：若說底薪、節稅名義招攬、私下金流，直接斥責並低分。
-        4. 【威德金句】：附上激勵語。
-        """
-    else:
-        prompt = f"""
-        你現在是元捷主管萬事通（威德主管分身）。
-        你的腦中有最詳盡的元捷教材：{YUANJIE_BRAIN}
+        # --- 萬用兼容大法：自動抓取目前支援的模型 ---
+        model_name = None
         
-        同仁問：『{user_input}』
-        請熱血且專業地回覆：
-        1. 提供教材中的具體 SOP (如 FACT 的四步驟、曼陀羅的八大來源)。
-        2. 引用具體比喻 (如備胎、印鈔機、不孝子)。
-        3. 結尾用威德金句勉勵。
-        """
-
-    with st.chat_message("assistant"):
-        with st.spinner("威德主管調閱教材中..."):
-            response = model.generate_content(prompt)
-            res_text = response.text
-            st.markdown(res_text)
-            st.session_state.messages.append({"role": "assistant", "content": res_text})
+        # 1. 取得所有可用模型清單
+        available_models = genai.list_models()
+        
+        # 2. 優先尋找名稱包含 'gemini-1.5-flash' 且支援生成內容的模型
+        for m in available_models:
+            if 'generateContent' in m.supported_generation_methods:
+                if 'gemini-1.5-flash' in m.name:
+                    model_name = m.name
+                    break
+        
+        # 3. 如果找不到 1.5-flash，退而求其次抓任何支援的 gemini 模型
+        if not model_name:
+            for m in genai.list_models():
+                if 'generateContent' in m.supported_generation_methods and 'gemini' in m.name:
+                    model_name = m.name
+                    break
+        
+        # 4. 錯誤處理
+        if not model_name:
+            st.error("❌ 無法取得任何可用的 Gemini 模型，請檢查 API 權限。")
+            st.stop()
             
-            if mode == "⚔️ 反對問題實戰演練":
-                score_match = re.search(r'評分[:：\s]*(\d+)', res_text)
-                earned_exp = int(score_match.group(1)) if score_match else 60
-                if earned_exp > st.session_state.user_data['exp']:
-                    st.session_state.user_data['exp'] = earned_exp
-                    all_db = get_db()
-                    all_db.loc[all_db['username'].astype(str) == str(st.session_state.user_data['username']), 'exp'] = str(st.session_state.user_data['exp'])
-                    conn.update(data=all_db)
-                if earned_exp >= 80: st.balloons()
+        # 成功抓到動態名稱，載入模型
+        model = genai.GenerativeModel(model_name)
+
+        st.session_state.messages.append({"role": "user", "content": user_input})
+        with st.chat_message("user"): st.markdown(user_input)
+
+        if mode == "⚔️ 反對問題實戰演練":
+            prompt = f"""
+            你現在是南山元捷教官。
+            你的腦中有最詳盡的元捷教材：{YUANJIE_BRAIN}
+            
+            針對反對情境「{selected_mod}」，學員回答：「{user_input}」。
+            請嚴格按照以下規範：
+            1. 【評分】：0-100。
+            2. 【深度實戰講評】：字數 400 字以上。分析學員是否命中教材細節（如印鈔機、4321、FACT A環節、同步語辭）。
+            3. 【地雷紅線】：若說底薪、節稅名義招攬、私下金流，直接斥責並低分。
+            4. 【威德金句】：附上激勵語。
+            """
+        else:
+            prompt = f"""
+            你現在是元捷主管萬事通（威德主管分身）。
+            你的腦中有最詳盡的元捷教材：{YUANJIE_BRAIN}
+            
+            同仁問：『{user_input}』
+            請熱血且專業地回覆：
+            1. 提供教材中的具體 SOP (如 FACT 的四步驟、曼陀羅的八大來源)。
+            2. 引用具體比喻 (如備胎、印鈔機)。
+            3. 結尾用威德金句勉勵。
+            """
+
+        with st.chat_message("assistant"):
+            with st.spinner("威德主管調閱教材中..."):
+                response = model.generate_content(prompt)
+                res_text = response.text
+                st.markdown(res_text)
+                st.session_state.messages.append({"role": "assistant", "content": res_text})
+                
+                if mode == "⚔️ 反對問題實戰演練":
+                    score_match = re.search(r'評分[:：\s]*(\d+)', res_text)
+                    earned_exp = int(score_match.group(1)) if score_match else 60
+                    if earned_exp > st.session_state.user_data['exp']:
+                        st.session_state.user_data['exp'] = earned_exp
+                        all_db = get_db()
+                        all_db.loc[all_db['username'].astype(str) == str(st.session_state.user_data['username']), 'exp'] = str(st.session_state.user_data['exp'])
+                        conn.update(data=all_db)
+                    if earned_exp >= 80: st.balloons()
+    
+    except Exception as e:
+        st.error(f"⚠️ 系統連線異常，請稍後再試。錯誤細節：{e}")
