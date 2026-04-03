@@ -17,12 +17,10 @@ if "messages" not in st.session_state:
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 def get_db():
-    # 讀取試算表
+    conn = st.connection("gsheets", type=GSheetsConnection)
     df = conn.read(ttl=0)
-    # 將所有欄位內容強制轉換為字串 (String)，防止 0 被吃掉
-    df = df.astype(str) 
-    # 額外保險：去掉前後可能不小心打到的空白鍵
-    df = df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
+    # 強制所有內容轉文字，且「不留任何小數點」
+    df = df.astype(str).replace(r'\.0$', '', regex=True)
     return df
 
 # ================= 2. 登入與註冊畫面 =================
@@ -78,21 +76,26 @@ if not st.session_state.logged_in:
         reg_name = st.text_input("顯示名稱 (暱稱)")
         
         if st.button("完成註冊"):
+            # 確保讀取最新的資料庫
+            df_current = get_db() 
+            u_reg = str(reg_user).strip()
+            
             if not reg_user or not reg_pw or not reg_name:
                 st.warning("請填寫所有欄位！")
-            elif str(reg_user).strip() in df['username'].values:
+            # 這裡強化檢查：強制轉字串比對
+            elif u_reg in df_current['username'].astype(str).values:
                 st.error("此帳號已被註冊。")
             else:
                 new_row = pd.DataFrame([{
-                    "username": str(reg_user).strip(),
+                    "username": u_reg,
                     "password": str(reg_pw).strip(),
                     "display_name": str(reg_name).strip(),
                     "exp": 0
                 }])
-                updated_df = pd.concat([df, new_row], ignore_index=True)
+                # 寫入時確保格式統一
+                updated_df = pd.concat([df_current, new_row], ignore_index=True)
                 conn.update(data=updated_df)
                 st.success("註冊成功！請切換到登入頁面。")
-    st.stop()
 
 # ================= 3. 題庫設定 (Levels 題庫) =================
 levels = {
