@@ -173,6 +173,9 @@ if user_input := st.chat_input("請輸入你的實戰話術..."):
                 u_id = str(st.session_state.user_data['username'])
                 all_db.loc[all_db['username'].astype(str) == u_id, 'exp'] = str(st.session_state.user_data['exp'])
                 conn.update(data=all_db)
+                # 更新存檔後，立刻叫網頁「重新整理」抓取新分數
+                st.session_state.user_data['exp'] = int(st.session_state.user_data['exp'])
+                st.rerun()
                 st.balloons()
     except Exception as e:
         st.error(f"系統異常：{e}")
