@@ -5,7 +5,7 @@ import pandas as pd
 import re
 
 # ================= 1. 網頁基礎設定 =================
-st.set_page_config(page_title="元捷 AI 實戰與主管萬事通 V15.8", page_icon="🛡️", layout="wide")
+st.set_page_config(page_title="元捷 AI 實戰與主管萬事通 V16", page_icon="🛡️", layout="wide")
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -27,9 +27,9 @@ def get_db():
 
 # ================= 2. 登入介面 =================
 if not st.session_state.logged_in:
-    st.title("🛡️ 元捷通訊處：AI 實戰教官系統")
-    st.subheader("「人生不是得到，就是學到」— 歡迎進入元捷數位大腦")
-    tab1, tab2 = st.tabs(["🔑 帳號登入", "📝 新隊員註冊"])
+    st.title("🛡️ 元捷通訊處：AI 實戰教官系統 V16")
+    st.subheader("「觀念若改，賓士隨你駛」— 元捷數位智慧庫")
+    tab1, tab2 = st.tabs(["🔑 帳號登入", "📝 新人註冊"])
     db_df = get_db()
     with tab1:
         login_user = st.text_input("帳號 (ID)", key="l_user")
@@ -44,8 +44,6 @@ if not st.session_state.logged_in:
                 user_info['exp'] = int(float(user_info.get('exp', 0)))
                 st.session_state.user_data = user_info
                 st.rerun()
-            else:
-                st.error("❌ 帳號或密碼錯誤")
     st.stop()
 
 # ================= 2. 【元捷大腦：頂規詳盡知識庫】 =================
@@ -119,23 +117,29 @@ YUANJIE_BRAIN = """
 4. 我捨不得我的客戶要裝心臟支架的時候沒有錢。
 5. 提早才是向前，即使已經落後。
 """
-OBJECTIONS = {
-    "不需要": "同步觀念好，切入備胎比喻或健檢缺口。",
-    "沒興趣": "印鈔機比喻，解決生老病死普通問題。",
-    "沒錢": "理財矩陣 10% 觀念，降低門檻（三五千也可以）。",
-    "已買過": "稱讚觀念好，透過健診確認是否解決現在的問題。",
-    "朋友做": "稱讚朋友，但強調元捷系統化服務與專業理賠案例。",
+
+OBJECTIONS_MAP = {
+    "不需要": "健保夠了？同步觀念好，釐清不需買vs不需再買，切入備胎比喻。",
+    "沒興趣": "保險非興趣。印鈔機比喻，解決生老病死普通問題。",
+    "沒錢": "理財矩陣 10% 保全觀念，三五千也可以，降低門檻。",
+    "已買過": "爸媽買好？稱讚觀念好，透過健診確認是否解決現在的問題。",
+    "朋友做": "稱讚朋友，強調元捷系統化服務與專業理賠分享。",
     "想拿底薪": "禁止說底薪！強調創業平台與利潤在自己身上。"
 }
 
 # ================= 4. 側邊欄與導航 =================
 with st.sidebar:
     st.title(f"👤 {st.session_state.user_data['display_name']}")
-    st.metric("🏆 個人戰績", f"{st.session_state.user_data['exp']} 分")
+    st.metric("🏆 最佳戰績", f"{st.session_state.user_data['exp']} 分")
     st.divider()
-    mode = st.radio("🚀 切換系統：", ["⚔️ 反對問題實戰", "🧠 主管萬事通"])
-    if mode == "⚔️ 反對問題實戰":
-        selected_mod = st.selectbox("🎯 情境：", list(OBJECTIONS.keys()))
+    mode = st.radio("🚀 系統選擇：", ["⚔️ 反對問題實戰演練", "🧠 元捷主管萬事通"])
+    
+    if mode == "⚔️ 反對問題實戰演練":
+        selected_mod = st.selectbox("🎯 情境選擇：", list(OBJECTIONS_MAP.keys()))
+        st.caption(f"💡 教官攻略：{OBJECTIONS_MAP[selected_mod]}")
+    else:
+        st.success("🤖 已加載元捷詳盡教材庫")
+
     if st.button("🔄 清空對話"):
         st.session_state.messages = []
         st.rerun()
@@ -143,35 +147,54 @@ with st.sidebar:
         st.session_state.logged_in = False
         st.rerun()
 
-# ================= 5. AI 回覆核心 (防崩潰處理) =================
+# ================= 5. AI 回覆邏輯 =================
 st.title(mode)
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]): st.markdown(msg["content"])
 
-if user_input := st.chat_input("請在此輸入..."):
+if user_input := st.chat_input("在此輸入..."):
     try:
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-        # 模型防崩潰邏輯：嘗試多個名稱，確保 NotFound 不再發生
+        # 模型防崩潰
         model_name = 'gemini-1.5-flash'
         model = genai.GenerativeModel(model_name)
         
         st.session_state.messages.append({"role": "user", "content": user_input})
         with st.chat_message("user"): st.markdown(user_input)
 
-        if mode == "⚔️ 反對問題實戰":
-            prompt = f"你是元捷教官。大腦知識：{YUANJIE_BRAIN}。針對「{selected_mod}」，學員說「{user_input}」。評分(0-100)+300字深講評+威德金句。"
+        if mode == "⚔️ 反對問題實戰演練":
+            prompt = f"""
+            你現在是元捷教官。
+            【頂規知識庫】：{YUANJIE_BRAIN}
+            
+            針對反對問題「{selected_mod}」，學員回答：「{user_input}」。
+            請嚴格按照以下規範講評：
+            1. 【評分】：0-100。
+            2. 【深度實戰分析】：字數必須 400 字以上。詳細分析學員是否命中上述知識庫中的具體比喻（如印鈔機、備胎等）及 FACT 步驟。
+            3. 【地雷糾錯】：檢測紅線（如底薪、節稅、私下金流）。
+            4. 【勉勵】：隨機引用一則威德金句。
+            """
         else:
-            prompt = f"你是元捷主管萬事通。大腦知識：{YUANJIE_BRAIN}。同仁問「{user_input}」。請用教材給SOP，引用比喻，並用威德金句勉勵。"
+            prompt = f"""
+            你現在是元捷處經理數位分身（威德主管萬事通）。
+            【全方位大腦知識庫】：{YUANJIE_BRAIN}
+            
+            同仁現在問你一個問題：『{user_input}』
+            
+            請以熱血、專業、務實的主管語氣解答：
+            1. 【主管解決方案】：必須提供具體的教材 SOP 或話術。如果問到特定領域（如社大、理財矩陣、增員），請背出上述知識庫中的細節。
+            2. 【深度比喻對位】：引用教材中相關的比喻（如鎖門比喻、不孝子比喻、4321比例等）。
+            3. 【結尾】：附上威德金句，並鼓勵同仁「有意識地生活，量大人瀟灑」。
+            """
 
         with st.chat_message("assistant"):
-            with st.spinner("威德主管正在閱卷..."):
+            with st.spinner("威德主管正在調閱教材中..."):
                 response = model.generate_content(prompt)
                 res_text = response.text
                 st.markdown(res_text)
                 st.session_state.messages.append({"role": "assistant", "content": res_text})
                 
-                # 自動更新分數
-                if mode == "⚔️ 反對問題實戰":
+                if mode == "⚔️ 反對問題實戰演練":
                     score_match = re.search(r'評分[:：\s]*(\d+)', res_text)
                     earned_exp = int(score_match.group(1)) if score_match else 60
                     if earned_exp > st.session_state.user_data['exp']:
@@ -183,4 +206,4 @@ if user_input := st.chat_input("請在此輸入..."):
                     st.button("同步至英雄榜", on_click=lambda: st.rerun())
 
     except Exception as e:
-        st.error(f"⚠️ 偵測到模型連線異常，請確認 API Key 是否正確或稍後再試。錯誤訊息：{e}")
+        st.error(f"⚠️ 系統異常：{e}")
