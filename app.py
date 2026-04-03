@@ -134,32 +134,50 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-if user_input := st.chat_input("請輸入你的實戰話術..."):
-    try:
-        # 1. 配置 AI
-        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-        
-        # 2. 自動尋找目前可用的 Flash 模型 (這招最穩！)
-        available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        # 優先找包含 'flash' 的模型，找不到就用第一個
-        target_model = next((m for m in available_models if 'flash' in m), available_models[0])
-        model = genai.GenerativeModel(target_model)
-        
-        # 3. 顯示玩家話術
-        st.session_state.messages.append({"role": "user", "content": user_input})
-        with st.chat_message("user"):
-            st.markdown(user_input)
+with st.chat_message("assistant"):
+            with st.spinner("教練評分中..."):
+                response = model.generate_content(prompt)
+                res_text = response.text
+                st.markdown(res_text)
+                st.session_state.messages.append({"role": "assistant", "content": res_text})
+                
+                # --- 1. 精準抓取分數 (排除關卡編號) ---
+                import re
+                # 尋找「評分：XX」或「分數：XX」後面的數字
+                score_match = re.search(r'(評分|分數|Score)[:：\s]*(\d+)', res_text)
+                
+                if score_match:
+                    earned_exp = int(score_match.group(2))
+                else:
+                    # 如果 AI 沒按格式給分，再嘗試找最後一個數字 (通常是得分)
+                    all_numbers = re.findall(r'\d+', res_text)
+                    earned_exp = int(all_numbers[-1]) if all_numbers else 60
+                
+                # 限制在合理區間
+                earned_exp = max(0, min(100, earned_exp))
 
-        # 這裡使用三引號確保 Prompt 格式正確不噴錯
-        prompt = f"""
-        你現在是南山人壽「捷出青年班」的首席實戰教練。
-        學員：{st.session_state.user_data['display_name']}
-        目前反對問題：{curr['objection']}
-        學員話術：{user_input}
-        
-        請根據教材邏輯：{curr['logic']}
-        給予：1. 辨識邏輯 2. 教練評分(1-100) 3. 實戰講評。
-        """
+                # --- 2. 顯示超大字體評分 ---
+                # 使用 HTML 語法讓字體變大、變紅、加粗
+                st.markdown(f"""
+                    <div style="text-align: center; border: 2px solid #FFA500; padding: 20px; border-radius: 10px;">
+                        <h3 style="color: #666;">本次實戰表現</h3>
+                        <h1 style="font-size: 72px; color: #FF4B4B; margin: 0;">{earned_exp} <span style="font-size: 24px;">分</span></h1>
+                    </div>
+                """, unsafe_allow_html=True)
+
+                # --- 3. 更新數據與存檔 ---
+                st.session_state.user_data['exp'] += earned_exp
+                all_db = get_db()
+                u_id = str(st.session_state.user_data['username'])
+                all_db.loc[all_db['username'].astype(str) == u_id, 'exp'] = str(st.session_state.user_data['exp'])
+                conn.update(data=all_db)
+                
+                if earned_exp >= 80:
+                    st.balloons()
+                
+                # 停頓一下讓學員看清楚分數，然後重新整理更新側邊欄
+                if st.button("確認分數並更新排行榜"):
+                    st.rerun()
 
         with st.chat_message("assistant"):
             with st.spinner("教練評分中..."):
