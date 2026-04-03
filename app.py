@@ -17,7 +17,13 @@ if "messages" not in st.session_state:
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 def get_db():
-    return conn.read(ttl=0)
+    # 讀取試算表
+    df = conn.read(ttl=0)
+    # 將所有欄位內容強制轉換為字串 (String)，防止 0 被吃掉
+    df = df.astype(str) 
+    # 額外保險：去掉前後可能不小心打到的空白鍵
+    df = df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
+    return df
 
 # ================= 2. 登入與註冊畫面 =================
 # ================= 2. 登入與註冊畫面 =================
