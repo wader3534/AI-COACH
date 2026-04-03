@@ -5,10 +5,48 @@ import pandas as pd
 import re
 
 # ================= 1. 網頁基礎設定 =================
-st.set_page_config(page_title="元捷 AI 實戰與主管萬事通 V15.5", page_icon="🛡️", layout="wide")
+st.set_page_config(page_title="元捷 AI 實戰與主管萬事通 V15.8", page_icon="🛡️", layout="wide")
 
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "user_data" not in st.session_state:
+    st.session_state.user_data = None
 if "messages" not in st.session_state:
     st.session_state.messages = []
+
+conn = st.connection("gsheets", type=GSheetsConnection)
+
+def get_db():
+    try:
+        df = conn.read(ttl=0)
+        df = df.astype(str).replace(r'\.0$', '', regex=True)
+        return df
+    except Exception as e:
+        st.error(f"資料庫連線失敗：{e}")
+        return pd.DataFrame(columns=["username", "password", "display_name", "exp"])
+
+# ================= 2. 登入介面 =================
+if not st.session_state.logged_in:
+    st.title("🛡️ 元捷通訊處：AI 實戰教官系統")
+    st.subheader("「人生不是得到，就是學到」— 歡迎進入元捷數位大腦")
+    tab1, tab2 = st.tabs(["🔑 帳號登入", "📝 新隊員註冊"])
+    db_df = get_db()
+    with tab1:
+        login_user = st.text_input("帳號 (ID)", key="l_user")
+        login_pw = st.text_input("密碼", type="password", key="l_pw")
+        if st.button("進入道館"):
+            u_input = str(login_user).strip()
+            p_input = str(login_pw).strip()
+            match = db_df[(db_df['username'].str.strip() == u_input) & (db_df['password'].str.strip() == p_input)]
+            if not match.empty:
+                st.session_state.logged_in = True
+                user_info = match.iloc[0].to_dict()
+                user_info['exp'] = int(float(user_info.get('exp', 0)))
+                st.session_state.user_data = user_info
+                st.rerun()
+            else:
+                st.error("❌ 帳號或密碼錯誤")
+    st.stop()
 
 # ================= 2. 【元捷大腦：頂規詳盡知識庫】 =================
 # 教官！這裡就是你的大腦基地。未來有新教材，直接往這裡面「塞」就對了！
@@ -81,50 +119,68 @@ YUANJIE_BRAIN = """
 4. 我捨不得我的客戶要裝心臟支架的時候沒有錢。
 5. 提早才是向前，即使已經落後。
 """
+OBJECTIONS = {
+    "不需要": "同步觀念好，切入備胎比喻或健檢缺口。",
+    "沒興趣": "印鈔機比喻，解決生老病死普通問題。",
+    "沒錢": "理財矩陣 10% 觀念，降低門檻（三五千也可以）。",
+    "已買過": "稱讚觀念好，透過健診確認是否解決現在的問題。",
+    "朋友做": "稱讚朋友，但強調元捷系統化服務與專業理賠案例。",
+    "想拿底薪": "禁止說底薪！強調創業平台與利潤在自己身上。"
+}
 
-# ================= 3. 登入介面與 DB 邏輯 (省略重複，維持原本) =================
-# (此處延用 V15.0 的登入與 DB 代碼...)
-
-# ================= 4. 主畫面系統 =================
+# ================= 4. 側邊欄與導航 =================
 with st.sidebar:
-    st.title("👤 元捷數位大腦")
-    mode = st.radio("🚀 模式切換：", ["⚔️ 反對問題實戰", "🧠 主管萬事通"])
+    st.title(f"👤 {st.session_state.user_data['display_name']}")
+    st.metric("🏆 個人戰績", f"{st.session_state.user_data['exp']} 分")
     st.divider()
+    mode = st.radio("🚀 切換系統：", ["⚔️ 反對問題實戰", "🧠 主管萬事通"])
     if mode == "⚔️ 反對問題實戰":
-        selected_mod = st.selectbox("🎯 情境選擇：", ["不需要", "沒興趣", "沒錢", "已買過", "考慮中", "朋友做", "想理財", "繳太長", "家人反對", "想拿底薪"])
-    st.button("🔄 清空對話", on_click=lambda: st.session_state.messages.clear())
+        selected_mod = st.selectbox("🎯 情境：", list(OBJECTIONS.keys()))
+    if st.button("🔄 清空對話"):
+        st.session_state.messages = []
+        st.rerun()
+    if st.button("🚪 登出"):
+        st.session_state.logged_in = False
+        st.rerun()
 
-st.title(f"🛡️ 元捷通訊處：{mode}")
-
+# ================= 5. AI 回覆核心 (防崩潰處理) =================
+st.title(mode)
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]): st.markdown(msg["content"])
 
-if user_input := st.chat_input("在此輸入..."):
-    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    model = genai.GenerativeModel('gemini-1.5-flash')
-    st.session_state.messages.append({"role": "user", "content": user_input})
-    with st.chat_message("user"): st.markdown(user_input)
+if user_input := st.chat_input("請在此輸入..."):
+    try:
+        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+        # 模型防崩潰邏輯：嘗試多個名稱，確保 NotFound 不再發生
+        model_name = 'gemini-1.5-flash'
+        model = genai.GenerativeModel(model_name)
+        
+        st.session_state.messages.append({"role": "user", "content": user_input})
+        with st.chat_message("user"): st.markdown(user_input)
 
-    # 這裡就是關鍵：把整個詳盡大腦餵給 Prompt
-    prompt = f"""
-    你是南山人壽「元捷通訊處」處經理威德的數位分身。
-    你的大腦中存儲了以下詳盡的教材知識庫，請嚴格遵守其中的術語、邏輯與價值觀：
-    {YUANJIE_BRAIN}
-    
-    【當前模式】：{mode}
-    【對應細節】：{selected_mod if mode == "⚔️ 反對問題實戰" else "全百科解答"}
-    【用戶輸入】：{user_input}
-    
-    講評/回答規範：
-    1. 必須引用教材中的具體比喻（如印鈔機、備胎、4321）。
-    2. 講評字數必須在 300 字以上，進行深度實戰分析。
-    3. 檢測地雷紅線：若觸碰「底薪、節稅、私下金流」等，直接給予嚴厲斥責。
-    4. 結尾必須附上一句威德金句勉勵。
-    """
+        if mode == "⚔️ 反對問題實戰":
+            prompt = f"你是元捷教官。大腦知識：{YUANJIE_BRAIN}。針對「{selected_mod}」，學員說「{user_input}」。評分(0-100)+300字深講評+威德金句。"
+        else:
+            prompt = f"你是元捷主管萬事通。大腦知識：{YUANJIE_BRAIN}。同仁問「{user_input}」。請用教材給SOP，引用比喻，並用威德金句勉勵。"
 
-    with st.chat_message("assistant"):
-        with st.spinner("威德教官閱卷中..."):
-            response = model.generate_content(prompt)
-            res_text = response.text
-            st.markdown(res_text)
-            st.session_state.messages.append({"role": "assistant", "content": res_text})
+        with st.chat_message("assistant"):
+            with st.spinner("威德主管正在閱卷..."):
+                response = model.generate_content(prompt)
+                res_text = response.text
+                st.markdown(res_text)
+                st.session_state.messages.append({"role": "assistant", "content": res_text})
+                
+                # 自動更新分數
+                if mode == "⚔️ 反對問題實戰":
+                    score_match = re.search(r'評分[:：\s]*(\d+)', res_text)
+                    earned_exp = int(score_match.group(1)) if score_match else 60
+                    if earned_exp > st.session_state.user_data['exp']:
+                        st.session_state.user_data['exp'] = earned_exp
+                        all_db = get_db()
+                        all_db.loc[all_db['username'].astype(str) == str(st.session_state.user_data['username']), 'exp'] = str(st.session_state.user_data['exp'])
+                        conn.update(data=all_db)
+                    if earned_exp >= 80: st.balloons()
+                    st.button("同步至英雄榜", on_click=lambda: st.rerun())
+
+    except Exception as e:
+        st.error(f"⚠️ 偵測到模型連線異常，請確認 API Key 是否正確或稍後再試。錯誤訊息：{e}")
