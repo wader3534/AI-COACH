@@ -27,11 +27,18 @@ if not st.session_state.logged_in:
     tab1, tab2 = st.tabs(["🔑 帳號登入", "📝 新隊員註冊"])
     df = get_db()
 
-    with tab1:
+   with tab1:
         login_user = st.text_input("帳號 (ID)")
         login_pw = st.text_input("密碼", type="password")
         if st.button("進入道館"):
-            match = df[(df['username'].astype(str) == login_user) & (df['password'].astype(str) == str(login_pw))]
+            # --- 修正後的比對邏輯 ---
+            # 強制將試算表欄位與輸入內容都轉為字串，避免數字與文字比對失敗
+            df['username'] = df['username'].astype(str)
+            df['password'] = df['password'].astype(str)
+            
+            match = df[(df['username'] == str(login_user)) & (df['password'] == str(login_pw))]
+            # -----------------------
+            
             if not match.empty:
                 st.session_state.logged_in = True
                 st.session_state.user_data = match.iloc[0].to_dict()
