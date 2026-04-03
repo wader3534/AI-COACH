@@ -142,25 +142,25 @@ levels = {
 }
 
 # ================= 4. 側邊欄狀態與排行榜 =================
+# ================= 4. 側邊欄狀態與排行榜 =================
 with st.sidebar:
-    st.title(f"👤 {st.session_state.user_data['display_name']}")
-    st.metric("🏆 累積實戰 EXP", st.session_state.user_data['exp'])
-    
+    # 增加檢查：確保 user_data 存在才顯示
+    if st.session_state.user_data and 'display_name' in st.session_state.user_data:
+        st.title(f"👤 {st.session_state.user_data['display_name']}")
+        # 確保 exp 是數字，避免顯示錯誤
+        try:
+            current_exp = int(float(st.session_state.user_data.get('exp', 0)))
+        except:
+            current_exp = 0
+        st.metric("🏆 累積實戰 EXP", current_exp)
+    else:
+        st.title("👤 戰士準備中...")
+        st.info("請先登入帳號")
+
     if st.button("登出"):
         st.session_state.logged_in = False
+        st.session_state.user_data = None # 登出時清空資料
         st.rerun()
-
-    st.divider()
-    st.subheader("📊 英雄榜")
-    leaderboard = get_db().sort_values(by="exp", ascending=False).head(5)
-    st.table(leaderboard[["display_name", "exp"]])
-    
-    st.divider()
-    selected_level = st.selectbox("選擇挑戰關卡：", list(levels.keys()))
-    if st.button("重新開始本關"):
-        st.session_state.messages = []
-        st.rerun()
-
 # ================= 5. 主畫面：AI 對話框指令 =================
 st.title(f"⚔️ {selected_level}")
 current_obj = levels[selected_level]["objection"]
