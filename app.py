@@ -136,12 +136,16 @@ for msg in st.session_state.messages:
 
 if user_input := st.chat_input("請輸入你的實戰話術..."):
     try:
-        # 配置 AI
+        # 1. 配置 AI
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
         
-        # 使用最穩定的模型完整路徑
-        model = genai.GenerativeModel('models/gemini-1.5-flash')
+        # 2. 自動尋找目前可用的 Flash 模型 (這招最穩！)
+        available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+        # 優先找包含 'flash' 的模型，找不到就用第一個
+        target_model = next((m for m in available_models if 'flash' in m), available_models[0])
+        model = genai.GenerativeModel(target_model)
         
+        # 3. 顯示玩家話術
         st.session_state.messages.append({"role": "user", "content": user_input})
         with st.chat_message("user"):
             st.markdown(user_input)
