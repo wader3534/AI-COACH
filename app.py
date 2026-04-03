@@ -37,24 +37,39 @@ if not st.session_state.logged_in:
     df = get_db()
 
     with tab1:
-        login_user = st.text_input("帳號 (ID)")
-        login_pw = st.text_input("密碼", type="password")
+        login_user = st.text_input("帳號 (ID)", key="l_user")
+        login_pw = st.text_input("密碼", type="password", key="l_pw")
         
-        if st.button("進入道館"):
-            # 取得處理過的乾淨字串
-            user_val = str(login_user).strip()
-            pw_val = str(login_pw).strip()
+        if st.button("進入道館", key="login_btn"):
+            # 1. 重新抓取最新資料並強制格式化
+            df = get_db()
             
-            # 比對資料庫
-            match = df[(df['username'] == user_val) & (df['password'] == pw_val)]
+            # 2. 清理輸入端的資料
+            u_input = str(login_user).strip()
+            p_input = str(login_pw).strip()
+            
+            # 3. 執行比對 (加入更多防錯處理)
+            # 確保資料庫裡的 username 和 password 也是乾淨的字串
+            match = df[
+                (df['username'].astype(str).str.strip() == u_input) & 
+                (df['password'].astype(str).str.strip() == p_input)
+            ]
             
             if not match.empty:
                 st.session_state.logged_in = True
-                st.session_state.user_data = match.iloc[0].to_dict()
-                st.success(f"歡迎回來，{st.session_state.user_data['display_name']}！")
+                # 取得該使用者的完整資料
+                user_info = match.iloc[0].to_dict()
+                # 確保分數是整數
+                user_info['exp'] = int(float(user_info.get('exp', 0)))
+                st.session_state.user_data = user_info
+                
+                st.success(f"🎊 歡迎回來，{user_info['display_name']} 教官！")
                 st.rerun()
             else:
-                st.error("帳號或密碼錯誤，請檢查 0 開頭問題或聯絡主管。")
+                st.error("❌ 帳號或密碼錯誤。")
+                # 幫助調試：如果資料庫是空的，提醒一下
+                if df.empty:
+                    st.warning("目前資料庫中沒有任何帳號資料，請先註冊。")
 
     with tab2:
         st.write("填寫資訊建立戰士檔案：")
