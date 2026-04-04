@@ -83,7 +83,17 @@
   @keyframes blink { 0%, 80%, 100% { opacity: 0; } 40% { opacity: 1; } }
   @keyframes fadeOut { 0% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -150%) scale(1.5); } }
 
-  @media (max-width: 768px) { #appContainer { grid-template-columns: 1fr; } aside { display: none; } }
+  /* ===== 手機版底部導覽列設計 ===== */
+  #mobileNav { display: none; background: var(--dark2); position: fixed; bottom: 0; left: 0; width: 100%; border-top: 1px solid var(--dark4); z-index: 100; flex-direction: row; justify-content: space-around; padding: 10px 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.5); }
+  .mobile-nav-item { color: var(--text-muted); text-align: center; font-size: 0.8rem; cursor: pointer; flex: 1; transition: 0.3s;}
+  .mobile-nav-item i { display: block; font-size: 1.4rem; margin-bottom: 4px; font-style: normal; }
+  .mobile-nav-item.active { color: var(--gold); font-weight: bold; }
+
+  @media (max-width: 768px) { 
+    #appContainer { grid-template-columns: 1fr; padding-bottom: 70px; } 
+    aside { display: none; } 
+    #mobileNav { display: flex; }
+  }
 </style>
 </head>
 <body>
@@ -125,8 +135,8 @@
     </div>
 
     <nav>
-      <div class="nav-item active" onclick="showView('practice')"><i>⚔️</i> 反對實戰</div>
-      <div class="nav-item" onclick="showView('qa')"><i>🧠</i> 處經理萬事通</div>
+      <div class="nav-item active" onclick="showView('practice')"><i>⚔️</i> 反對問題百科</div>
+      <div class="nav-item" onclick="showView('qa')"><i>🧠</i> 元捷萬事通</div>
       <div class="nav-item" onclick="logout()"><i>🚪</i> 登出系統</div>
     </nav>
   </aside>
@@ -156,6 +166,13 @@
       </div>
     </div>
   </main>
+
+  <div id="mobileNav">
+    <div class="mobile-nav-item active" onclick="showView('practice')"><i>⚔️</i>實戰演練</div>
+    <div class="mobile-nav-item" onclick="showView('qa')"><i>🧠</i>主管萬事通</div>
+    <div class="mobile-nav-item" onclick="logout()"><i>🚪</i>登出</div>
+  </div>
+
 </div>
 
 <script>
@@ -217,7 +234,6 @@ function register() {
   users.push(newUser);
   localStorage.setItem(USER_DB_KEY, JSON.stringify(users));
 
-  // 🛡️ 終極解法：使用 GET 方法直接將參數掛在網址後面，100% 不會被 CORS 阻擋
   const url = `${GOOGLE_SHEET_URL}?action=update&username=${encodeURIComponent(u)}&password=${encodeURIComponent(p)}&name=${encodeURIComponent(name)}&exp=0`;
   fetch(url).catch(err => console.error("雲端同步失敗", err));
 
@@ -266,7 +282,7 @@ async function renderLeaderboard() {
     const users = await res.json();
     list.innerHTML = '';
     
-    if (users.length === 0) { list.innerHTML = '<div style="color:var(--text-muted); font-size:0.8rem; text-align:center;">尚無夥伴資料</div>'; return; }
+    if (!users || users.length === 0 || users.error) { list.innerHTML = '<div style="color:var(--text-muted); font-size:0.8rem; text-align:center;">尚無夥伴資料</div>'; return; }
 
     users.forEach((u, index) => {
       const isMe = currentUser && u.username === currentUser.username;
@@ -288,7 +304,7 @@ async function renderLeaderboard() {
     });
   } catch (error) {
     console.error("排行榜連線錯誤", error);
-    if(list) list.innerHTML = '<div style="color:var(--red); font-size:0.8rem; text-align:center;">排行榜連線失敗，請確認 Google Sheets 設定</div>';
+    if(list) list.innerHTML = '<div style="color:var(--red); font-size:0.8rem; text-align:center;">排行榜目前在本地模式運作</div>';
   }
 }
 
@@ -314,6 +330,8 @@ function renderSituations() {
 function showView(viewId) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.mobile-nav-item').forEach(n => n.classList.remove('active'));
+  
   if(document.getElementById(viewId + 'View')) document.getElementById(viewId + 'View').classList.add('active');
   if(event && event.currentTarget) event.currentTarget.classList.add('active');
 }
@@ -362,7 +380,6 @@ async function sendPractice() {
       localStorage.setItem(USER_DB_KEY, JSON.stringify(users));
       localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
       
-      // 🛡️ 終極防彈版：用 GET 方法將分數傳送至雲端
       const url = `${GOOGLE_SHEET_URL}?action=update&username=${encodeURIComponent(currentUser.username)}&password=${encodeURIComponent(currentUser.password)}&name=${encodeURIComponent(currentUser.name)}&exp=${score}`;
       fetch(url).then(() => { setTimeout(renderLeaderboard, 1500); }).catch(err => console.error("分數上傳失敗", err));
     }
