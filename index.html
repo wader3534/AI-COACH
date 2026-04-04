@@ -62,6 +62,8 @@
   .msg-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem; flex-shrink: 0; }
   .msg-avatar.ai { background: var(--gold); color: black; }
   .msg-avatar.user-av { background: var(--dark4); color: white; border: 1px solid var(--text-dim); }
+  
+  /* 電腦版的對話泡泡 (75%) */
   .msg-bubble { max-width: 75%; padding: 14px 20px; border-radius: 18px; line-height: 1.6; font-size: 0.95rem; }
   .user .msg-bubble { background: var(--gold); color: black; border-top-right-radius: 4px; }
   .ai .msg-bubble { background: var(--dark4); color: var(--text); border-top-left-radius: 4px; border: 1px solid #333; }
@@ -89,13 +91,23 @@
   .mobile-nav-item i { display: block; font-size: 1.4rem; margin-bottom: 4px; font-style: normal; }
   .mobile-nav-item.active { color: var(--gold); font-weight: bold; }
 
-  /* ===== 手機版介面優化 ===== */
+  /* 🎯 終極手機版介面優化（寬闊版） */
   @media (max-width: 768px) { 
     #appContainer { grid-template-columns: 1fr; padding-bottom: 70px; } 
     aside { display: none; } 
     #mobileNav { display: flex; }
-    /* 🛡️ 將手機版對話泡泡的最大寬度增加到 92%，讓文字更寬敞 */
-    .msg-bubble { max-width: 92%; }
+    
+    /* 1. 解除左右兩側的預設 40px 留白，讓畫面撐開 */
+    .view { padding: 15px 10px; } 
+    
+    /* 2. 對話框微調，增加可視區域 */
+    .chat-box { border-radius: 12px; margin-bottom: 10px; min-height: 450px; }
+    .messages { padding: 15px 10px; }
+    .input-group { padding: 15px 10px; }
+    
+    /* 3. 讓對話泡泡變寬（90%），並微調字體方便閱讀 */
+    .msg-bubble { max-width: 90%; font-size: 1rem; padding: 12px 16px; }
+    .msg-avatar { width: 32px; height: 32px; font-size: 0.85rem; }
   }
 </style>
 </head>
