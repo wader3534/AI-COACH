@@ -49,8 +49,9 @@
   }
   .login-card button {
     width: 100%; padding: 12px; background: var(--gold); border: none;
-    color: black; font-weight: bold; border-radius: 8px; cursor: pointer;
+    color: black; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.3s;
   }
+  .login-card button:hover { background: var(--gold-light); }
 
   /* ===== APP LAYOUT ===== */
   #appContainer { display: none; height: 100vh; grid-template-columns: 280px 1fr; }
@@ -79,27 +80,32 @@
   .view.active { display: flex; flex-direction: column; }
 
   /* Chat Area */
-  .chat-box { flex: 1; background: var(--dark2); border-radius: 20px; display: flex; flex-direction: column; border: 1px solid var(--dark4); overflow: hidden; margin-bottom: 20px; min-height: 400px;}
+  .chat-box { flex: 1; background: var(--dark2); border-radius: 20px; display: flex; flex-direction: column; border: 1px solid var(--dark4); overflow: hidden; margin-bottom: 20px; min-height: 500px;}
   .messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
   .input-group { padding: 20px; background: var(--dark3); display: flex; gap: 10px; border-top: 1px solid var(--dark4); }
-  .input-group input { flex: 1; background: var(--dark); border: 1px solid var(--dark4); padding: 12px 20px; border-radius: 30px; color: white; outline: none; }
-  .input-group button { background: var(--gold); border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; color: black; font-weight: bold; }
+  .input-group input { flex: 1; background: var(--dark); border: 1px solid var(--dark4); padding: 12px 20px; border-radius: 30px; color: white; outline: none; font-size: 1rem; }
+  .input-group button { background: var(--gold); border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; color: black; font-weight: bold; font-size: 1.2rem; }
 
   /* Message Bubbles */
-  .msg-row { display: flex; margin-bottom: 10px; width: 100%; }
-  .msg-row.user { justify-content: flex-end; }
+  .msg-row { display: flex; align-items: flex-start; margin-bottom: 10px; width: 100%; gap: 10px; }
+  .msg-row.user { justify-content: flex-end; flex-direction: row-reverse; }
   .msg-row.ai { justify-content: flex-start; }
-  .msg-bubble { max-width: 80%; padding: 12px 18px; border-radius: 18px; line-height: 1.6; font-size: 0.95rem; }
-  .user .msg-bubble { background: var(--gold); color: black; border-bottom-right-radius: 4px; }
-  .ai .msg-bubble { background: var(--dark4); color: var(--text); border-bottom-left-radius: 4px; }
+  
+  .msg-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem; flex-shrink: 0; }
+  .msg-avatar.ai { background: var(--gold); color: black; }
+  .msg-avatar.user-av { background: var(--dark4); color: white; border: 1px solid var(--text-dim); }
 
-  .score-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: bold; margin-bottom: 8px; }
+  .msg-bubble { max-width: 75%; padding: 14px 20px; border-radius: 18px; line-height: 1.6; font-size: 0.95rem; }
+  .user .msg-bubble { background: var(--gold); color: black; border-top-right-radius: 4px; }
+  .ai .msg-bubble { background: var(--dark4); color: var(--text); border-top-left-radius: 4px; border: 1px solid #333; }
+
+  .score-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: bold; margin-bottom: 10px; }
   .score-high { background: var(--green); color: white; }
   .score-mid { background: var(--gold); color: black; }
   .score-low { background: var(--red); color: white; }
 
   /* Selection UI */
-  .selection-grid { display: grid; grid-template-columns: repeat(auto-fill, min-minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+  .selection-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; margin-bottom: 30px; }
   .situation-card {
     background: var(--dark3); padding: 15px; border-radius: 12px; cursor: pointer;
     border: 1px solid var(--dark4); transition: 0.3s;
@@ -108,7 +114,7 @@
   .situation-card.active { background: var(--gold); color: black; border-color: var(--gold); }
 
   /* Typing Animation */
-  .typing { display: flex; gap: 5px; padding: 10px; }
+  .typing { display: flex; gap: 5px; padding: 5px; }
   .typing span { width: 8px; height: 8px; background: var(--gold); border-radius: 50%; animation: blink 1.4s infinite both; }
   .typing span:nth-child(2) { animation-delay: 0.2s; }
   .typing span:nth-child(3) { animation-delay: 0.4s; }
@@ -126,9 +132,9 @@
   <div class="login-card">
     <h1>元捷 AI 教官</h1>
     <input type="text" id="username" placeholder="帳號">
-    <input type="password" id="password" placeholder="密碼">
+    <input type="password" id="password" placeholder="密碼" onkeypress="if(event.key==='Enter') login()">
     <button onclick="login()">進入道館</button>
-    <p style="margin-top:15px; font-size:0.8rem; color:var(--text-muted)">預設：admin / yuanjie2024</p>
+    <p style="margin-top:15px; font-size:0.8rem; color:var(--text-muted)">預設測試帳號：admin / yuanjie2024</p>
   </div>
 </div>
 
@@ -151,21 +157,20 @@
 
   <main>
     <div id="practiceView" class="view active">
-      <h2 style="margin-bottom:20px; font-family:'Noto Serif TC'">⚔️ 10大反對問題實戰</h2>
-      <div class="selection-grid" id="situationList">
-        </div>
+      <h2 style="margin-bottom:20px; font-family:'Noto Serif TC'; color:var(--gold);">⚔️ 反對問題實戰演練</h2>
+      <div class="selection-grid" id="situationList"></div>
       <div class="chat-box">
         <div class="messages" id="practiceMessages"></div>
         <div class="input-group">
-          <input type="text" id="practiceInput" placeholder="輸入你的實戰話術..." onkeypress="if(event.key==='Enter') sendPractice()">
+          <input type="text" id="practiceInput" placeholder="請輸入你的實戰話術..." onkeypress="if(event.key==='Enter') sendPractice()">
           <button id="practiceSend" onclick="sendPractice()">▶</button>
         </div>
       </div>
     </div>
 
     <div id="qaView" class="view">
-      <h2 style="margin-bottom:20px; font-family:'Noto Serif TC'">🧠 主管萬事通</h2>
-      <p style="color:var(--text-muted); margin-bottom:20px;">你可以詢問任何關於：名單開發、社大經營、理財矩陣、FACT技巧、增員等問題。</p>
+      <h2 style="margin-bottom:20px; font-family:'Noto Serif TC'; color:var(--gold);">🧠 主管萬事通</h2>
+      <p style="color:var(--text-muted); margin-bottom:20px;">關於名單開發、理財矩陣、增員或商品比喻，隨時呼叫主管為您解答。</p>
       <div class="chat-box">
         <div class="messages" id="qaMessages"></div>
         <div class="input-group">
@@ -178,21 +183,19 @@
 </div>
 
 <script>
-// ===== 配置區 (請更換為您的 Worker 網址) =====
+// ==========================================
+// 1. 系統設定配置區
+// ==========================================
 const WORKER_URL = 'https://weathered-limit-374ayuanjie-ai.wader3534.workers.dev';
 
-// ===== 數據庫 =====
 const OBJECTIONS = [
-  { id: 'need', title: '1. 不需要/已有健保', hint: '同步觀念好，切入備胎比喻。' },
-  { id: 'interest', title: '2. 沒興趣/沒感覺', hint: '保險非興趣，切入印鈔機比喻。' },
-  { id: 'money', title: '3. 沒錢/預算不足', hint: '10%保全觀念，三五千也可以。' },
-  { id: 'parent', title: '4. 已買過/父母買了', hint: '切入健診，確認缺口。' },
-  { id: 'think', title: '5. 考慮中/想一下', hint: '先簽再考慮法，卡位保障。' },
-  { id: 'friend', title: '6. 朋友做/人情壓力', hint: '強調專業理賠與系統化服務。' },
-  { id: 'invest', title: '7. 想理財/我自己存', hint: '10%防守 vs 30%攻擊。' },
-  { id: 'long', title: '8. 繳太長/20年太久', hint: '退休長跑與鎖利存本觀念。' },
-  { id: 'family', title: '9. 家人反對/不同意', hint: '釐清反對原因，強調愛與責任。' },
-  { id: 'salary', title: '10. 增員/我要拿底薪', hint: '禁止說底薪，強調創業利潤。' }
+  { id: 'need', title: '不需要/已有健保', hint: '切入備胎比喻' },
+  { id: 'interest', title: '沒興趣/沒感覺', hint: '切入印鈔機比喻' },
+  { id: 'money', title: '沒錢/預算不足', hint: '10%保全觀念' },
+  { id: 'parent', title: '已買過/父母買了', hint: '保單健診補缺口' },
+  { id: 'think', title: '考慮中/想一下', hint: '先簽再考慮法' },
+  { id: 'friend', title: '朋友做/人情壓力', hint: '強調專業與系統' },
+  { id: 'salary', title: '想拿底薪(增員)', hint: '強調創業與利潤' }
 ];
 
 let currentUser = null;
@@ -200,9 +203,9 @@ let currentSituation = '不需要/已有健保';
 const SESSION_KEY = 'yuanjie_user_session';
 const USER_DB_KEY = 'yuanjie_users_db';
 
-// ===== 核心功能 =====
-
-// 1. 初始化
+// ==========================================
+// 2. 初始化與登入系統
+// ==========================================
 window.onload = () => {
   initUsers();
   renderSituations();
@@ -215,30 +218,11 @@ window.onload = () => {
 
 function initUsers() {
   if(!localStorage.getItem(USER_DB_KEY)) {
-    const defaultUsers = [{ username: 'admin', password: 'yuanjie2024', name: '黎威德教官', exp: 0 }];
+    const defaultUsers = [{ username: 'admin', password: 'yuanjie2024', name: '威德教官', exp: 0 }];
     localStorage.setItem(USER_DB_KEY, JSON.stringify(defaultUsers));
   }
 }
 
-function renderSituations() {
-  const list = document.getElementById('situationList');
-  OBJECTIONS.forEach(obj => {
-    const card = document.createElement('div');
-    card.className = 'situation-card' + (obj.title === currentSituation ? ' active' : '');
-    card.innerHTML = `<strong>${obj.title}</strong><br><small style="font-size:0.7rem; opacity:0.7">${obj.hint}</small>`;
-    card.onclick = () => {
-      document.querySelectorAll('.situation-card').forEach(c => c.classList.remove('active'));
-      card.classList.add('active');
-      currentSituation = obj.title;
-      const msgs = document.getElementById('practiceMessages');
-      msgs.innerHTML = '';
-      addMessage(msgs, 'ai', `現在開始演練「${currentSituation}」。當客戶這樣說時，你會如何回應？`);
-    };
-    list.appendChild(card);
-  });
-}
-
-// 2. 登入邏輯
 function login() {
   const u = document.getElementById('username').value;
   const p = document.getElementById('password').value;
@@ -250,7 +234,7 @@ function login() {
     localStorage.setItem(SESSION_KEY, JSON.stringify(user));
     loginSuccess();
   } else {
-    alert('帳號或密碼錯誤');
+    alert('❌ 帳號或密碼錯誤');
   }
 }
 
@@ -260,7 +244,7 @@ function loginSuccess() {
   document.getElementById('appContainer').style.display = 'grid';
   document.getElementById('userName').textContent = currentUser.name;
   document.getElementById('expBadge').textContent = currentUser.exp + ' 分';
-  addMessage(document.getElementById('practiceMessages'), 'ai', `威德教官您好，準備好開始今天的實戰修練了嗎？目前選擇關卡：${currentSituation}`);
+  addMessage(document.getElementById('practiceMessages'), 'ai', `威德教官您好！準備好開始實戰了嗎？<br><br>請點選上方的關卡，當客戶說出反對問題時，輸入您的話術。`);
 }
 
 function logout() {
@@ -268,89 +252,24 @@ function logout() {
   location.reload();
 }
 
-// 3. AI 呼叫 (精簡傳輸)
-async function callAI(promptText) {
-  const res = await fetch(WORKER_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ question: promptText })
+function renderSituations() {
+  const list = document.getElementById('situationList');
+  OBJECTIONS.forEach(obj => {
+    const card = document.createElement('div');
+    card.className = 'situation-card' + (obj.title === currentSituation ? ' active' : '');
+    card.innerHTML = `<strong>${obj.title}</strong><br><small style="font-size:0.75rem; color:var(--text-muted);">${obj.hint}</small>`;
+    card.onclick = () => {
+      document.querySelectorAll('.situation-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      currentSituation = obj.title;
+      const msgs = document.getElementById('practiceMessages');
+      msgs.innerHTML = '';
+      addMessage(msgs, 'ai', `🎯 現在切換到關卡：<strong>【${currentSituation}】</strong><br>當客戶這樣說時，你會如何回應？`);
+    };
+    list.appendChild(card);
   });
-  const data = await res.json();
-  if (data.error) throw new Error(data.error);
-  return data.answer;
 }
 
-// 實戰發送
-async function sendPractice() {
-  const input = document.getElementById('practiceInput');
-  const val = input.value.trim();
-  if (!val || input.disabled) return;
-
-  const msgs = document.getElementById('practiceMessages');
-  addMessage(msgs, 'user', val);
-  input.value = '';
-  input.disabled = true;
-
-  const typing = addTyping(msgs);
-  
-  // 網頁端只需發送情境與學員話術，Worker 會自動套用大腦
-  const prompt = `[實戰演練模式] 情境：${currentSituation}。學員回答：「${val}」。請教官根據元捷大腦進行 0-100 評分並提供 400 字以上深度講評。`;
-
-  try {
-    const answer = await callAI(prompt);
-    typing.remove();
-
-    const scoreMatch = answer.match(/【評分】[：:]\s*(\d+)/);
-    const score = scoreMatch ? parseInt(scoreMatch[1]) : 60;
-    
-    // 更新本地分數
-    if (score > currentUser.exp) {
-      currentUser.exp = score;
-      let users = JSON.parse(localStorage.getItem(USER_DB_KEY));
-      let idx = users.findIndex(u => u.username === currentUser.username);
-      users[idx].exp = score;
-      localStorage.setItem(USER_DB_KEY, JSON.stringify(users));
-      localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
-      document.getElementById('expBadge').textContent = score + ' 分';
-    }
-
-    const html = `<span class="score-badge ${score >= 80 ? 'score-high' : score >= 60 ? 'score-mid' : 'score-low'}">評分：${score} 分</span><br>${answer.replace(/\n/g, '<br>')}`;
-    addMessage(msgs, 'ai', html, true);
-    if(score >= 80) addMessage(msgs, 'ai', '🔥 漂亮！符合元捷標準話術！');
-  } catch(e) {
-    typing.remove();
-    addMessage(msgs, 'ai', '⚠️ 通訊異常，請確認 Cloudflare Worker 是否正常運作。');
-  }
-  input.disabled = false;
-  input.focus();
-}
-
-// 萬事通發送
-async function sendQA() {
-  const input = document.getElementById('qaInput');
-  const val = input.value.trim();
-  if (!val || input.disabled) return;
-
-  const msgs = document.getElementById('qaMessages');
-  addMessage(msgs, 'user', val);
-  input.value = '';
-  input.disabled = true;
-
-  const typing = addTyping(msgs);
-  const prompt = `[萬事通模式] 同仁詢問：『${val}』。請提供具體教材 SOP 或比喻。`;
-
-  try {
-    const answer = await callAI(prompt);
-    typing.remove();
-    addMessage(msgs, 'ai', answer.replace(/\n/g, '<br>'), true);
-  } catch(e) {
-    typing.remove();
-    addMessage(msgs, 'ai', '⚠️ 通訊異常。');
-  }
-  input.disabled = false;
-}
-
-// 4. UI 輔助
 function showView(viewId) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -358,26 +277,166 @@ function showView(viewId) {
   event.currentTarget.classList.add('active');
 }
 
+// ==========================================
+// 3. AI 雲端連線核心 (對接 Worker)
+// ==========================================
+async function callAI(prompt) {
+  const res = await fetch(WORKER_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question: prompt })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data.answer;
+}
+
+// ==========================================
+// 4. 實戰演練模式
+// ==========================================
+async function sendPractice() {
+  const input = document.getElementById('practiceInput');
+  const val = input.value.trim();
+  if (!val) return;
+  
+  const messages = document.getElementById('practiceMessages');
+  const sendBtn = document.getElementById('practiceSend');
+
+  addMessage(messages, 'user', val);
+  input.value = '';
+  sendBtn.disabled = true;
+  const typingRow = addTyping(messages);
+
+  // 輕量化指令：大腦已在 Worker 中，這裡只傳遞情境與要求
+  const prompt = `[實戰評分模式] 
+當前情境為：「${currentSituation}」
+學員的回答是：「${val}」
+
+請以元捷教官的身份，嚴格給出 0-100 分的評分，並提供 400 字以上的深度講評。
+分析學員是否命中教材精華（如印鈔機比喻、FACT等），並用威德金句勉勵收尾。`;
+
+  try {
+    const answer = await callAI(prompt);
+    typingRow.remove();
+    
+    // 解析 AI 回答中的分數
+    const scoreMatch = answer.match(/【評分】[：:]\s*(\d+)/);
+    const score = scoreMatch ? parseInt(scoreMatch[1]) : 60;
+    let scoreClass = score >= 80 ? 'score-high' : score >= 60 ? 'score-mid' : 'score-low';
+    
+    // 美化 AI 的回覆內容
+    const formattedAnswer = answer
+      .replace(/\n/g, '<br>')
+      .replace(/【/g, '<strong style="color:var(--gold)">【')
+      .replace(/】/g, '】</strong>');
+
+    const html = `<span class="score-badge ${scoreClass}">🎯 實戰得分：${score} 分</span><br><br>${formattedAnswer}`;
+    addMessage(messages, 'ai', html, true);
+    
+    // 更新本地最高分
+    if (score > currentUser.exp) {
+      currentUser.exp = score;
+      document.getElementById('expBadge').textContent = score + ' 分';
+      let users = JSON.parse(localStorage.getItem(USER_DB_KEY));
+      let idx = users.findIndex(u => u.username === currentUser.username);
+      users[idx].exp = score;
+      localStorage.setItem(USER_DB_KEY, JSON.stringify(users));
+      localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
+    }
+    
+    // 高分特效
+    if (score >= 80) {
+      document.body.insertAdjacentHTML('beforeend', '<div id="confetti" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:100px;z-index:9999;pointer-events:none;animation:fadeOut 2s forwards;">🎉</div>');
+      setTimeout(() => { const el = document.getElementById('confetti'); if(el) el.remove(); }, 2000);
+    }
+  } catch(e) {
+    typingRow.remove();
+    addMessage(messages, 'ai', '⚠️ 通訊異常。請確認您的 Cloudflare Worker 是否已正確部署。');
+  }
+  sendBtn.disabled = false;
+  input.focus();
+}
+
+// ==========================================
+// 5. 主管萬事通模式
+// ==========================================
+async function sendQA() {
+  const input = document.getElementById('qaInput');
+  const val = input.value.trim();
+  if (!val) return;
+  
+  const messages = document.getElementById('qaMessages');
+  const sendBtn = document.getElementById('qaSend');
+
+  addMessage(messages, 'user', val);
+  input.value = '';
+  sendBtn.disabled = true;
+  const typingRow = addTyping(messages);
+
+  const prompt = `[主管萬事通模式] 同仁詢問：「${val}」。
+請用熱血且專業的語氣，提供教材中的具體 SOP 或比喻，結尾用威德金句勉勵。`;
+
+  try {
+    const answer = await callAI(prompt);
+    typingRow.remove();
+    const formattedAnswer = answer
+      .replace(/\n/g, '<br>')
+      .replace(/【/g, '<strong style="color:var(--gold)">【')
+      .replace(/】/g, '】</strong>');
+      
+    addMessage(messages, 'ai', formattedAnswer, true);
+  } catch(e) {
+    typingRow.remove();
+    addMessage(messages, 'ai', '⚠️ 通訊異常。請確認您的 Cloudflare Worker 是否已正確部署。');
+  }
+  sendBtn.disabled = false;
+  input.focus();
+}
+
+// ==========================================
+// 6. 聊天室 UI 工具
+// ==========================================
 function addMessage(container, role, content, isHtml = false) {
   const row = document.createElement('div');
   row.className = 'msg-row ' + role;
+
+  const avatar = document.createElement('div');
+  avatar.className = 'msg-avatar ' + (role === 'ai' ? 'ai' : 'user-av');
+  avatar.textContent = role === 'ai' ? '元' : (currentUser?.name?.[0] || '我');
+
   const bubble = document.createElement('div');
   bubble.className = 'msg-bubble';
   if (isHtml) bubble.innerHTML = content;
   else bubble.textContent = content;
+
+  row.appendChild(avatar);
   row.appendChild(bubble);
   container.appendChild(row);
   container.scrollTop = container.scrollHeight;
+  return row;
 }
 
 function addTyping(container) {
   const row = document.createElement('div');
   row.className = 'msg-row ai';
-  row.innerHTML = '<div class="msg-bubble"><div class="typing"><span></span><span></span><span></span></div></div>';
+  
+  const avatar = document.createElement('div');
+  avatar.className = 'msg-avatar ai';
+  avatar.textContent = '元';
+  
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+  
+  row.appendChild(avatar);
+  row.appendChild(bubble);
   container.appendChild(row);
   container.scrollTop = container.scrollHeight;
   return row;
 }
 </script>
+<style>
+  @keyframes fadeOut { 0% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -150%) scale(1.5); } }
+</style>
 </body>
 </html>
