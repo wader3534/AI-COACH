@@ -7,58 +7,23 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --gold: #C9A84C;
-    --gold-light: #E8C96A;
-    --dark: #0D0D0D;
-    --dark2: #161616;
-    --dark3: #1E1E1E;
-    --dark4: #2A2A2A;
-    --text: #F0EDE8;
-    --text-muted: #888;
-    --text-dim: #555;
-    --red: #E85D4A;
-    --green: #4CAF7D;
+    --gold: #C9A84C; --gold-light: #E8C96A; --dark: #0D0D0D; --dark2: #161616;
+    --dark3: #1E1E1E; --dark4: #2A2A2A; --text: #F0EDE8; --text-muted: #888;
+    --text-dim: #555; --red: #E85D4A; --green: #4CAF7D;
   }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Noto Sans TC', sans-serif; background: var(--dark); color: var(--text); min-height: 100vh; overflow-x: hidden; }
 
-  body {
-    font-family: 'Noto Sans TC', sans-serif;
-    background: var(--dark);
-    color: var(--text);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* ===== LOGIN & REGISTER ===== */
-  #loginPage {
-    position: fixed; top:0; left:0; width:100%; height:100%;
-    background: radial-gradient(circle at center, #222 0%, #000 100%);
-    display: flex; align-items: center; justify-content: center; z-index: 1000;
-    transition: opacity 0.5s ease;
-  }
-  .login-card {
-    background: var(--dark2); padding: 40px; border-radius: 20px;
-    width: 90%; max-width: 400px; border: 1px solid var(--dark4);
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5); text-align: center;
-  }
+  #loginPage { position: fixed; top:0; left:0; width:100%; height:100%; background: radial-gradient(circle at center, #222 0%, #000 100%); display: flex; align-items: center; justify-content: center; z-index: 1000; transition: opacity 0.5s ease; }
+  .login-card { background: var(--dark2); padding: 40px; border-radius: 20px; width: 90%; max-width: 400px; border: 1px solid var(--dark4); box-shadow: 0 20px 50px rgba(0,0,0,0.5); text-align: center; }
   .login-card h1 { font-family: 'Noto Serif TC', serif; color: var(--gold); margin-bottom: 30px; font-weight: 900; }
-  .login-card input {
-    width: 100%; padding: 12px; background: var(--dark3); border: 1px solid var(--dark4);
-    color: white; border-radius: 8px; margin-bottom: 15px; outline: none;
-  }
-  .login-card button {
-    width: 100%; padding: 12px; background: var(--gold); border: none;
-    color: black; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.3s;
-  }
+  .login-card input { width: 100%; padding: 12px; background: var(--dark3); border: 1px solid var(--dark4); color: white; border-radius: 8px; margin-bottom: 15px; outline: none; }
+  .login-card button { width: 100%; padding: 12px; background: var(--gold); border: none; color: black; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.3s; }
   .login-card button:hover { background: var(--gold-light); }
   .switch-mode { margin-top: 15px; font-size: 0.9rem; cursor: pointer; color: var(--gold); transition: 0.3s; }
   .switch-mode:hover { color: white; }
 
-  /* ===== APP LAYOUT ===== */
   #appContainer { display: none; height: 100vh; grid-template-columns: 280px 1fr; }
-  
-  /* Sidebar & Leaderboard */
   aside { background: var(--dark2); border-right: 1px solid var(--dark4); display: flex; flex-direction: column; overflow-y: auto;}
   .side-header { padding: 30px 20px; text-align: center; border-bottom: 1px solid var(--dark4); }
   .side-header h2 { font-family: 'Noto Serif TC', serif; color: var(--gold); font-size: 1.5rem; }
@@ -76,35 +41,27 @@
   .lb-exp { color: var(--gold-light); font-size: 0.85rem; font-weight: bold; }
   
   nav { flex: 1; padding: 10px; margin-top: 10px;}
-  .nav-item {
-    display: flex; align-items: center; padding: 14px 20px; border-radius: 10px;
-    cursor: pointer; transition: 0.3s; color: var(--text-muted); margin-bottom: 5px;
-  }
+  .nav-item { display: flex; align-items: center; padding: 14px 20px; border-radius: 10px; cursor: pointer; transition: 0.3s; color: var(--text-muted); margin-bottom: 5px; }
   .nav-item:hover { background: var(--dark3); color: white; }
   .nav-item.active { background: var(--gold); color: black; font-weight: bold; }
   .nav-item i { margin-right: 12px; font-style: normal; }
 
-  /* Main Content */
   main { flex: 1; overflow-y: auto; background: var(--dark); position: relative; }
   .view { display: none; padding: 40px; max-width: 1000px; margin: 0 auto; min-height: 100%; }
   .view.active { display: flex; flex-direction: column; }
 
-  /* Chat Area */
   .chat-box { flex: 1; background: var(--dark2); border-radius: 20px; display: flex; flex-direction: column; border: 1px solid var(--dark4); overflow: hidden; margin-bottom: 20px; min-height: 500px;}
   .messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
   .input-group { padding: 20px; background: var(--dark3); display: flex; gap: 10px; border-top: 1px solid var(--dark4); }
   .input-group input { flex: 1; background: var(--dark); border: 1px solid var(--dark4); padding: 12px 20px; border-radius: 30px; color: white; outline: none; font-size: 1rem; }
   .input-group button { background: var(--gold); border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; color: black; font-weight: bold; font-size: 1.2rem; }
 
-  /* Message Bubbles */
   .msg-row { display: flex; align-items: flex-start; margin-bottom: 10px; width: 100%; gap: 10px; }
   .msg-row.user { justify-content: flex-end; flex-direction: row-reverse; }
   .msg-row.ai { justify-content: flex-start; }
-  
   .msg-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem; flex-shrink: 0; }
   .msg-avatar.ai { background: var(--gold); color: black; }
   .msg-avatar.user-av { background: var(--dark4); color: white; border: 1px solid var(--text-dim); }
-
   .msg-bubble { max-width: 75%; padding: 14px 20px; border-radius: 18px; line-height: 1.6; font-size: 0.95rem; }
   .user .msg-bubble { background: var(--gold); color: black; border-top-right-radius: 4px; }
   .ai .msg-bubble { background: var(--dark4); color: var(--text); border-top-left-radius: 4px; border: 1px solid #333; }
@@ -114,26 +71,19 @@
   .score-mid { background: var(--gold); color: black; }
   .score-low { background: var(--red); color: white; }
 
-  /* Selection UI */
   .selection-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; margin-bottom: 30px; }
-  .situation-card {
-    background: var(--dark3); padding: 15px; border-radius: 12px; cursor: pointer;
-    border: 1px solid var(--dark4); transition: 0.3s;
-  }
+  .situation-card { background: var(--dark3); padding: 15px; border-radius: 12px; cursor: pointer; border: 1px solid var(--dark4); transition: 0.3s; }
   .situation-card:hover { border-color: var(--gold); }
   .situation-card.active { background: var(--gold); color: black; border-color: var(--gold); }
 
-  /* Typing Animation */
   .typing { display: flex; gap: 5px; padding: 5px; }
   .typing span { width: 8px; height: 8px; background: var(--gold); border-radius: 50%; animation: blink 1.4s infinite both; }
   .typing span:nth-child(2) { animation-delay: 0.2s; }
   .typing span:nth-child(3) { animation-delay: 0.4s; }
   @keyframes blink { 0%, 80%, 100% { opacity: 0; } 40% { opacity: 1; } }
+  @keyframes fadeOut { 0% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -150%) scale(1.5); } }
 
-  @media (max-width: 768px) {
-    #appContainer { grid-template-columns: 1fr; }
-    aside { display: none; }
-  }
+  @media (max-width: 768px) { #appContainer { grid-template-columns: 1fr; } aside { display: none; } }
 </style>
 </head>
 <body>
@@ -171,8 +121,7 @@
 
     <div class="leaderboard-section">
       <div class="lb-title">🏆 夥伴實力英雄榜</div>
-      <div id="leaderboardList">
-        </div>
+      <div id="leaderboardList"></div>
     </div>
 
     <nav>
@@ -210,13 +159,9 @@
 </div>
 
 <script>
-// ==========================================
-// 1. 系統設定配置區
-// ==========================================
 const WORKER_URL = 'https://weathered-limit-374ayuanjie-ai.wader3534.workers.dev';
 const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbxAr9JiCTY3F7AYUAY15U9d7No-klzWzvlQhqWdiTrnQXCb8HLZAwWKQUX5dz2oDwP9/exec';
 
-// 14大反對問題擴充
 const OBJECTIONS = [
   { id: 'interest', title: '沒興趣', hint: '切入備胎與未來需求' },
   { id: 'money', title: '沒有錢', hint: '理財盲點/急難救助' },
@@ -239,9 +184,6 @@ let currentSituation = '沒興趣';
 const SESSION_KEY = 'yuanjie_user_session';
 const USER_DB_KEY = 'yuanjie_users_db';
 
-// ==========================================
-// 2. 初始化與登入系統
-// ==========================================
 window.onload = () => {
   initUsers();
   renderSituations();
@@ -253,59 +195,36 @@ window.onload = () => {
 };
 
 function initUsers() {
-  if(!localStorage.getItem(USER_DB_KEY)) {
-    localStorage.setItem(USER_DB_KEY, JSON.stringify([]));
-  }
+  if(!localStorage.getItem(USER_DB_KEY)) localStorage.setItem(USER_DB_KEY, JSON.stringify([]));
 }
 
 function toggleAuthMode(mode) {
-  if (mode === 'register') {
-    document.getElementById('loginBlock').style.display = 'none';
-    document.getElementById('registerBlock').style.display = 'block';
-  } else {
-    document.getElementById('registerBlock').style.display = 'none';
-    document.getElementById('loginBlock').style.display = 'block';
-  }
+  document.getElementById('loginBlock').style.display = mode === 'register' ? 'none' : 'block';
+  document.getElementById('registerBlock').style.display = mode === 'register' ? 'block' : 'none';
 }
 
-// 註冊功能 (包含防阻擋的雲端密碼同步)
 function register() {
   const name = document.getElementById('regName').value.trim();
   const u = document.getElementById('regUsername').value.trim();
   const p = document.getElementById('regPassword').value.trim();
 
-  if (!name || !u || !p) {
-    alert('❌ 請填寫所有欄位（姓名、帳號、密碼）！');
-    return;
-  }
+  if (!name || !u || !p) { alert('❌ 請填寫所有欄位！'); return; }
 
   let users = JSON.parse(localStorage.getItem(USER_DB_KEY)) || [];
-
-  if (users.find(x => x.username === u)) {
-    alert('❌ 這個帳號已經被註冊過了，請換一個！');
-    return;
-  }
+  if (users.find(x => x.username === u)) { alert('❌ 這個帳號已經被註冊過了！'); return; }
 
   const newUser = { username: u, password: p, name: name, exp: 0 };
   users.push(newUser);
   localStorage.setItem(USER_DB_KEY, JSON.stringify(users));
 
-  // 🛡️ 使用 URLSearchParams 與 no-cors 強制突破跨域限制，確保帳號密碼寫入 Google Sheets
-  const formData = new URLSearchParams();
-  formData.append('username', u);
-  formData.append('password', p);
-  formData.append('name', name);
-  formData.append('exp', 0);
-
+  // 🛡️ 終極防彈版：使用 text/plain 發送，完美繞過 Google Sheets 的跨域阻擋
   fetch(GOOGLE_SHEET_URL, {
     method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: formData
-  }).catch(err => console.error("雲端註冊同步失敗", err));
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ username: u, password: p, name: name, exp: 0 })
+  }).catch(err => console.error("雲端同步失敗", err));
 
   alert('✅ 註冊成功！系統將為您自動登入。');
-  
   currentUser = newUser;
   localStorage.setItem(SESSION_KEY, JSON.stringify(newUser));
   loginSuccess();
@@ -331,83 +250,55 @@ function loginSuccess() {
   setTimeout(() => document.getElementById('loginPage').style.display = 'none', 500);
   document.getElementById('appContainer').style.display = 'grid';
   
-  // 🛡️ 防呆：確保 DOM 元素存在才寫入
-  const userNameEl = document.getElementById('userName');
-  const expBadgeEl = document.getElementById('expBadge');
-  if(userNameEl) userNameEl.textContent = currentUser.name;
-  if(expBadgeEl) expBadgeEl.textContent = currentUser.exp + ' 分';
+  if(document.getElementById('userName')) document.getElementById('userName').textContent = currentUser.name;
+  if(document.getElementById('expBadge')) document.getElementById('expBadge').textContent = currentUser.exp + ' 分';
   
   renderLeaderboard();
-  
   addMessage(document.getElementById('practiceMessages'), 'ai', `您好，${currentUser.name}！準備好開始實戰了嗎？<br><br>請點選上方的關卡，當客戶說出反對問題時，輸入您的話術。`, true);
 }
 
-function logout() {
-  localStorage.removeItem(SESSION_KEY);
-  location.reload();
-}
+function logout() { localStorage.removeItem(SESSION_KEY); location.reload(); }
 
-// ==========================================
-// ★ 英雄榜渲染邏輯 (雲端同步版)
-// ==========================================
 async function renderLeaderboard() {
   const list = document.getElementById('leaderboardList');
-  if(!list) return; // 防呆
+  if(!list) return;
   list.innerHTML = '<div style="color:var(--text-muted); font-size:0.8rem; text-align:center;">連線同步中...</div>';
 
   try {
     const res = await fetch(GOOGLE_SHEET_URL);
     const users = await res.json();
-
     list.innerHTML = '';
-    if (users.length === 0) {
-      list.innerHTML = '<div style="color:var(--text-muted); font-size:0.8rem; text-align:center;">尚無夥伴資料</div>';
-      return;
-    }
+    
+    if (users.length === 0) { list.innerHTML = '<div style="color:var(--text-muted); font-size:0.8rem; text-align:center;">尚無夥伴資料</div>'; return; }
 
     users.forEach((u, index) => {
       const isMe = currentUser && u.username === currentUser.username;
       const item = document.createElement('div');
       item.className = 'lb-item' + (isMe ? ' me' : '');
-      
-      let medal = '';
-      if (index === 0) medal = '🥇 ';
-      else if (index === 1) medal = '🥈 ';
-      else if (index === 2) medal = '🥉 ';
-
-      item.innerHTML = `
-        <div class="lb-name">${medal}${u.name}</div>
-        <div class="lb-exp">${u.exp} 分</div>
-      `;
+      let medal = index === 0 ? '🥇 ' : index === 1 ? '🥈 ' : index === 2 ? '🥉 ' : '';
+      item.innerHTML = `<div class="lb-name">${medal}${u.name}</div><div class="lb-exp">${u.exp} 分</div>`;
       list.appendChild(item);
       
-      // 同步更新自己畫面上方的分數 (以雲端最高分為準)
       if (isMe && u.exp > currentUser.exp) {
         currentUser.exp = u.exp;
-        const expBadgeEl = document.getElementById('expBadge');
-        if(expBadgeEl) expBadgeEl.textContent = u.exp + ' 分';
-        
+        if(document.getElementById('expBadge')) document.getElementById('expBadge').textContent = u.exp + ' 分';
         localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
         
-        // 更新本地端資料庫
         let localUsers = JSON.parse(localStorage.getItem(USER_DB_KEY)) || [];
         let idx = localUsers.findIndex(x => x.username === currentUser.username);
-        if(idx !== -1) {
-            localUsers[idx].exp = u.exp;
-            localStorage.setItem(USER_DB_KEY, JSON.stringify(localUsers));
-        }
+        if(idx !== -1) { localUsers[idx].exp = u.exp; localStorage.setItem(USER_DB_KEY, JSON.stringify(localUsers)); }
       }
     });
   } catch (error) {
-    console.error("無法載入雲端排行榜", error);
-    if(list) list.innerHTML = '<div style="color:var(--red); font-size:0.8rem; text-align:center;">排行榜連線失敗</div>';
+    console.error("排行榜連線錯誤", error);
+    if(list) list.innerHTML = '<div style="color:var(--red); font-size:0.8rem; text-align:center;">排行榜連線失敗，請稍後重試</div>';
   }
 }
 
 function renderSituations() {
   const list = document.getElementById('situationList');
-  if(!list) return; // 防呆
-  list.innerHTML = ''; // 清空重新渲染
+  if(!list) return;
+  list.innerHTML = ''; 
   OBJECTIONS.forEach(obj => {
     const card = document.createElement('div');
     card.className = 'situation-card' + (obj.title === currentSituation ? ' active' : '');
@@ -417,10 +308,7 @@ function renderSituations() {
       card.classList.add('active');
       currentSituation = obj.title;
       const msgs = document.getElementById('practiceMessages');
-      if(msgs) {
-        msgs.innerHTML = '';
-        addMessage(msgs, 'ai', `🎯 現在切換到關卡：<strong>【${currentSituation}】</strong><br>當客戶這樣說時，你會如何回應？`, true);
-      }
+      if(msgs) { msgs.innerHTML = ''; addMessage(msgs, 'ai', `🎯 現在切換到關卡：<strong>【${currentSituation}】</strong><br>當客戶這樣說時，你會如何回應？`, true); }
     };
     list.appendChild(card);
   });
@@ -429,28 +317,17 @@ function renderSituations() {
 function showView(viewId) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  const targetView = document.getElementById(viewId + 'View');
-  if(targetView) targetView.classList.add('active');
+  if(document.getElementById(viewId + 'View')) document.getElementById(viewId + 'View').classList.add('active');
   if(event && event.currentTarget) event.currentTarget.classList.add('active');
 }
 
-// ==========================================
-// 3. AI 雲端連線核心 (對接 Worker)
-// ==========================================
 async function callAI(prompt) {
-  const res = await fetch(WORKER_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ question: prompt })
-  });
+  const res = await fetch(WORKER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: prompt }) });
   const data = await res.json();
   if (data.error) throw new Error(data.error);
   return data.answer;
 }
 
-// ==========================================
-// 4. 實戰演練模式
-// ==========================================
 async function sendPractice() {
   const input = document.getElementById('practiceInput');
   if(!input) return;
@@ -465,12 +342,7 @@ async function sendPractice() {
   if(sendBtn) sendBtn.disabled = true;
   const typingRow = addTyping(messages);
 
-  const prompt = `[實戰評分模式] 
-當前情境為：「${currentSituation}」
-學員的回答是：「${val}」
-
-請以元捷教官的身份，嚴格給出 0-100 分的評分，並提供 400 字以上的深度講評。
-分析學員是否命中教材精華（如印鈔機比喻、FACT等），並用威德金句勉勵收尾。`;
+  const prompt = `[實戰評分模式] \n當前情境為：「${currentSituation}」\n學員的回答是：「${val}」\n請以元捷教官的身份，嚴格給出 0-100 分的評分，並提供 400 字以上的深度講評。分析學員是否命中教材精華，並用威德金句勉勵收尾。`;
 
   try {
     const answer = await callAI(prompt);
@@ -480,43 +352,25 @@ async function sendPractice() {
     const score = scoreMatch ? parseInt(scoreMatch[1]) : 60;
     let scoreClass = score >= 80 ? 'score-high' : score >= 60 ? 'score-mid' : 'score-low';
     
-    const formattedAnswer = answer
-      .replace(/\n/g, '<br>')
-      .replace(/【/g, '<strong style="color:var(--gold)">【')
-      .replace(/】/g, '】</strong>');
-
-    const html = `<span class="score-badge ${scoreClass}">🎯 實戰得分：${score} 分</span><br><br>${formattedAnswer}`;
-    addMessage(messages, 'ai', html, true);
+    const formattedAnswer = answer.replace(/\n/g, '<br>').replace(/【/g, '<strong style="color:var(--gold)">【').replace(/】/g, '】</strong>');
+    addMessage(messages, 'ai', `<span class="score-badge ${scoreClass}">🎯 實戰得分：${score} 分</span><br><br>${formattedAnswer}`, true);
     
-    // 如果這次得分比歷史最高分高，更新分數並傳送至雲端
     if (score > currentUser.exp) {
       currentUser.exp = score;
-      const expBadgeEl = document.getElementById('expBadge');
-      if(expBadgeEl) expBadgeEl.textContent = score + ' 分';
+      if(document.getElementById('expBadge')) document.getElementById('expBadge').textContent = score + ' 分';
       
-      // 1. 更新本地紀錄
       let users = JSON.parse(localStorage.getItem(USER_DB_KEY)) || [];
       let idx = users.findIndex(u => u.username === currentUser.username);
       if(idx !== -1) users[idx].exp = score;
       localStorage.setItem(USER_DB_KEY, JSON.stringify(users));
       localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
       
-      // 2. 背景傳送至 Google Sheets 雲端 (使用防阻擋模式)
-      const formData = new URLSearchParams();
-      formData.append('username', currentUser.username);
-      formData.append('password', currentUser.password);
-      formData.append('name', currentUser.name);
-      formData.append('exp', score);
-
+      // 🛡️ 終極防彈版上傳分數
       fetch(GOOGLE_SHEET_URL, {
         method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: formData
-      }).then(() => {
-        // 成功上傳後，延遲重整最新排行榜
-        setTimeout(renderLeaderboard, 1500); 
-      }).catch(err => console.error("分數上傳雲端失敗", err));
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ username: currentUser.username, password: currentUser.password, name: currentUser.name, exp: score })
+      }).then(() => { setTimeout(renderLeaderboard, 1500); }).catch(err => console.error("分數上傳失敗", err));
     }
     
     if (score >= 80) {
@@ -531,9 +385,6 @@ async function sendPractice() {
   input.focus();
 }
 
-// ==========================================
-// 5. 主管萬事通模式
-// ==========================================
 async function sendQA() {
   const input = document.getElementById('qaInput');
   if(!input) return;
@@ -553,11 +404,7 @@ async function sendQA() {
   try {
     const answer = await callAI(prompt);
     if(typingRow) typingRow.remove();
-    const formattedAnswer = answer
-      .replace(/\n/g, '<br>')
-      .replace(/【/g, '<strong style="color:var(--gold)">【')
-      .replace(/】/g, '】</strong>');
-      
+    const formattedAnswer = answer.replace(/\n/g, '<br>').replace(/【/g, '<strong style="color:var(--gold)">【').replace(/】/g, '】</strong>');
     addMessage(messages, 'ai', formattedAnswer, true);
   } catch(e) {
     if(typingRow) typingRow.remove();
@@ -567,23 +414,17 @@ async function sendQA() {
   input.focus();
 }
 
-// ==========================================
-// 6. 聊天室 UI 工具
-// ==========================================
 function addMessage(container, role, content, isHtml = false) {
   if(!container) return;
   const row = document.createElement('div');
   row.className = 'msg-row ' + role;
-
   const avatar = document.createElement('div');
   avatar.className = 'msg-avatar ' + (role === 'ai' ? 'ai' : 'user-av');
   avatar.textContent = role === 'ai' ? '元' : (currentUser?.name?.[0] || '我');
-
   const bubble = document.createElement('div');
   bubble.className = 'msg-bubble';
   if (isHtml) bubble.innerHTML = content;
   else bubble.textContent = content;
-
   row.appendChild(avatar);
   row.appendChild(bubble);
   container.appendChild(row);
@@ -595,15 +436,12 @@ function addTyping(container) {
   if(!container) return null;
   const row = document.createElement('div');
   row.className = 'msg-row ai';
-  
   const avatar = document.createElement('div');
   avatar.className = 'msg-avatar ai';
   avatar.textContent = '元';
-  
   const bubble = document.createElement('div');
   bubble.className = 'msg-bubble';
   bubble.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
-  
   row.appendChild(avatar);
   row.appendChild(bubble);
   container.appendChild(row);
@@ -611,8 +449,5 @@ function addTyping(container) {
   return row;
 }
 </script>
-<style>
-  @keyframes fadeOut { 0% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -150%) scale(1.5); } }
-</style>
 </body>
 </html>
