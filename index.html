@@ -244,7 +244,7 @@ function loginSuccess() {
   document.getElementById('appContainer').style.display = 'grid';
   document.getElementById('userName').textContent = currentUser.name;
   document.getElementById('expBadge').textContent = currentUser.exp + ' 分';
-  addMessage(document.getElementById('practiceMessages'), 'ai', `威德教官您好！準備好開始實戰了嗎？<br><br>請點選上方的關卡，當客戶說出反對問題時，輸入您的話術。`);
+  addMessage(document.getElementById('practiceMessages'), 'ai', `威德教官您好！準備好開始實戰了嗎？<br><br>請點選上方的關卡，當客戶說出反對問題時，輸入您的話術。`, true);
 }
 
 function logout() {
@@ -264,7 +264,7 @@ function renderSituations() {
       currentSituation = obj.title;
       const msgs = document.getElementById('practiceMessages');
       msgs.innerHTML = '';
-      addMessage(msgs, 'ai', `🎯 現在切換到關卡：<strong>【${currentSituation}】</strong><br>當客戶這樣說時，你會如何回應？`);
+      addMessage(msgs, 'ai', `🎯 現在切換到關卡：<strong>【${currentSituation}】</strong><br>當客戶這樣說時，你會如何回應？`, true);
     };
     list.appendChild(card);
   });
@@ -307,7 +307,6 @@ async function sendPractice() {
   sendBtn.disabled = true;
   const typingRow = addTyping(messages);
 
-  // 輕量化指令：大腦已在 Worker 中，這裡只傳遞情境與要求
   const prompt = `[實戰評分模式] 
 當前情境為：「${currentSituation}」
 學員的回答是：「${val}」
@@ -319,12 +318,10 @@ async function sendPractice() {
     const answer = await callAI(prompt);
     typingRow.remove();
     
-    // 解析 AI 回答中的分數
     const scoreMatch = answer.match(/【評分】[：:]\s*(\d+)/);
     const score = scoreMatch ? parseInt(scoreMatch[1]) : 60;
     let scoreClass = score >= 80 ? 'score-high' : score >= 60 ? 'score-mid' : 'score-low';
     
-    // 美化 AI 的回覆內容
     const formattedAnswer = answer
       .replace(/\n/g, '<br>')
       .replace(/【/g, '<strong style="color:var(--gold)">【')
@@ -333,7 +330,6 @@ async function sendPractice() {
     const html = `<span class="score-badge ${scoreClass}">🎯 實戰得分：${score} 分</span><br><br>${formattedAnswer}`;
     addMessage(messages, 'ai', html, true);
     
-    // 更新本地最高分
     if (score > currentUser.exp) {
       currentUser.exp = score;
       document.getElementById('expBadge').textContent = score + ' 分';
@@ -344,14 +340,13 @@ async function sendPractice() {
       localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
     }
     
-    // 高分特效
     if (score >= 80) {
       document.body.insertAdjacentHTML('beforeend', '<div id="confetti" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:100px;z-index:9999;pointer-events:none;animation:fadeOut 2s forwards;">🎉</div>');
       setTimeout(() => { const el = document.getElementById('confetti'); if(el) el.remove(); }, 2000);
     }
   } catch(e) {
     typingRow.remove();
-    addMessage(messages, 'ai', '⚠️ 真實錯誤原因：' + e.message);
+    addMessage(messages, 'ai', `⚠️ <b>真實錯誤原因：</b> <br><span style="color:var(--red)">${e.message}</span><br><br><small>👉 如果顯示 Failed to fetch，代表您的瀏覽器(如Brave/Safari)阻擋了連線，請換 Chrome 或用手機開啟。<br>👉 如果顯示 API 相關錯誤，代表 Cloudflare 的 Key 有問題。</small>`, true);
   }
   sendBtn.disabled = false;
   input.focus();
@@ -387,7 +382,7 @@ async function sendQA() {
     addMessage(messages, 'ai', formattedAnswer, true);
   } catch(e) {
     typingRow.remove();
-    addMessage(messages, 'ai', '⚠️ 真實錯誤原因：' + e.message);
+    addMessage(messages, 'ai', `⚠️ <b>真實錯誤原因：</b> <br><span style="color:var(--red)">${e.message}</span><br><br><small>👉 如果顯示 Failed to fetch，代表您的瀏覽器阻擋了連線。</small>`, true);
   }
   sendBtn.disabled = false;
   input.focus();
