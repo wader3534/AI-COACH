@@ -136,7 +136,7 @@
       <div id="leaderboardList"></div>
     </div>
     <nav>
-      <div class="nav-item active" onclick="showView('practice')"><i>⚔️</i> 銷售反對問題實戰</div>
+      <div class="nav-item active" onclick="showView('practice')"><i>⚔️</i> 反對問題實戰演練</div>
       <div class="nav-item" onclick="showView('qa')"><i>🧠</i> 元捷主管萬事通</div>
       <div class="nav-item" onclick="logout()"><i>🚪</i> 登出系統</div>
     </nav>
@@ -212,8 +212,7 @@ function toggleAuthMode(m) {
   document.getElementById('registerBlock').style.display = m === 'register' ? 'block' : 'none';
 }
 
-// 🛡️ 終極防凍結機制：等待雲端確實收到後再執行下一步
-async function registerBtn(e) {
+function registerBtn(e) {
   if (e && e.key && e.key !== 'Enter') return;
   const n = document.getElementById('regName').value.trim();
   const u = document.getElementById('regUsername').value.trim();
@@ -223,37 +222,29 @@ async function registerBtn(e) {
   let users = JSON.parse(localStorage.getItem(USER_DB_KEY)) || [];
   if (users.find(x => x.username === u)) { alert('❌ 帳號重複！'); return; }
 
-  // 按鈕變成連線中，防止連點
   const btn = document.getElementById('regSubmitBtn');
   const originalText = btn.innerText;
-  btn.innerText = '雲端連線中...';
+  btn.innerText = '註冊中...';
   btn.disabled = true;
 
   const newUser = { username: u, password: p, name: n, exp: 0 };
 
-  try {
-    const finalUrl = `${GOOGLE_SHEET_URL}?action=update&username=${encodeURIComponent(u)}&password=${encodeURIComponent(p)}&name=${encodeURIComponent(n)}&exp=0&_t=${new Date().getTime()}`;
-    // 強制等待 fetch 完成，才不會被 alert 凍結
-    await fetch(finalUrl); 
-  } catch (error) {
-    // 萬一 fetch 被擋，偷偷塞一個腳本標籤強行通關
-    console.log("嘗試強制寫入...");
-    const s = document.createElement('script');
-    s.src = `${GOOGLE_SHEET_URL}?action=update&username=${encodeURIComponent(u)}&password=${encodeURIComponent(p)}&name=${encodeURIComponent(n)}&exp=0&_t=${new Date().getTime()}`;
-    document.body.appendChild(s);
-  }
+  // 🛡️ 寫入：動態腳本標籤寫入，繞過所有阻擋
+  const s = document.createElement('script');
+  s.src = `${GOOGLE_SHEET_URL}?action=update&username=${encodeURIComponent(u)}&password=${encodeURIComponent(p)}&name=${encodeURIComponent(n)}&exp=0&_t=${new Date().getTime()}`;
+  document.body.appendChild(s);
 
-  // 寫入本地資料庫
   users.push(newUser);
   localStorage.setItem(USER_DB_KEY, JSON.stringify(users));
 
-  alert('✅ 註冊成功！系統將為您自動登入。');
-  btn.innerText = originalText;
-  btn.disabled = false;
-
-  currentUser = newUser;
-  localStorage.setItem(SESSION_KEY, JSON.stringify(newUser));
-  loginSuccess();
+  setTimeout(() => {
+    alert('✅ 註冊成功！系統將為您自動登入。');
+    btn.innerText = originalText;
+    btn.disabled = false;
+    currentUser = newUser;
+    localStorage.setItem(SESSION_KEY, JSON.stringify(newUser));
+    loginSuccess();
+  }, 1000);
 }
 
 function login() {
@@ -276,23 +267,45 @@ function loginSuccess() {
 
 function logout() { localStorage.removeItem(SESSION_KEY); location.reload(); }
 
-async function renderLeaderboard() {
+// 🛡️ 終極無敵讀取：JSONP 回呼函數
+window.leaderboardCallback = function(users) {
+  const list = document.getElementById('leaderboardList');
+  if(!list) return;
+  list.innerHTML = '';
+  
+  if (!users || users.length === 0 || users.error) { 
+    list.innerHTML = '<div style="color:var(--text-muted); font-size:0.8rem; text-align:center;">尚無夥伴資料</div>'; 
+    return; 
+  }
+
+  users.forEach((u, index) => {
+    const isMe = currentUser && u.username === currentUser.username;
+    const item = document.createElement('div');
+    item.className = 'lb-item' + (isMe ? ' me' : '');
+    let medal = index === 0 ? '🥇 ' : index === 1 ? '🥈 ' : index === 2 ? '🥉 ' : '';
+    item.innerHTML = `<div class="lb-name">${medal}${u.name}</div><div class="lb-exp">${u.exp} 分</div>`;
+    list.appendChild(item);
+    
+    if (isMe && u.exp > currentUser.exp) {
+      currentUser.exp = u.exp;
+      if(document.getElementById('expBadge')) document.getElementById('expBadge').textContent = u.exp + ' 分';
+      localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
+      let localUsers = JSON.parse(localStorage.getItem(USER_DB_KEY)) || [];
+      let idx = localUsers.findIndex(x => x.username === currentUser.username);
+      if(idx !== -1) { localUsers[idx].exp = u.exp; localStorage.setItem(USER_DB_KEY, JSON.stringify(localUsers)); }
+    }
+  });
+};
+
+function renderLeaderboard() {
   const list = document.getElementById('leaderboardList');
   if(!list) return;
   list.innerHTML = '<div style="color:var(--text-muted); font-size:0.8rem; text-align:center;">同步中...</div>';
-  try {
-    const res = await fetch(`${GOOGLE_SHEET_URL}?_t=${new Date().getTime()}`);
-    const users = await res.json();
-    list.innerHTML = '';
-    users.forEach((u, index) => {
-      const isMe = currentUser && u.username === currentUser.username;
-      const item = document.createElement('div');
-      item.className = 'lb-item' + (isMe ? ' me' : '');
-      let medal = index === 0 ? '🥇 ' : index === 1 ? '🥈 ' : index === 2 ? '🥉 ' : '';
-      item.innerHTML = `<div class="lb-name">${medal}${u.name}</div><div class="lb-exp">${u.exp} 分</div>`;
-      list.appendChild(item);
-    });
-  } catch (e) { list.innerHTML = '<div style="color:var(--gold); font-size:0.8rem; text-align:center;">讀取中...</div>'; }
+  
+  // 🛡️ 啟動 JSONP 偽裝下載
+  const script = document.createElement('script');
+  script.src = `${GOOGLE_SHEET_URL}?callback=leaderboardCallback&_t=${new Date().getTime()}`;
+  document.body.appendChild(script);
 }
 
 function renderSituations() {
@@ -320,33 +333,56 @@ function showView(viewId) {
   if(event && event.currentTarget) event.currentTarget.classList.add('active');
 }
 
+async function callAI(prompt) {
+  const res = await fetch(WORKER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: prompt }) });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data.answer;
+}
+
 async function sendPractice() {
   const input = document.getElementById('practiceInput');
   const val = input.value.trim();
   if (!val) return;
   const messages = document.getElementById('practiceMessages');
+  const sendBtn = document.getElementById('practiceSend');
+
   addMessage(messages, 'user', val);
   input.value = '';
-  const typing = addMessage(messages, 'ai', '教官評分中...');
+  if(sendBtn) sendBtn.disabled = true;
+  const typingRow = addTyping(messages);
+
+  const prompt = `[實戰評分模式] \n當前情境為：「${currentSituation}」\n學員的回答是：「${val}」\n請以元捷教官的身份，嚴格給出 0-100 分的評分，並提供 400 字以上的深度講評。分析學員是否命中教材精華，並用威德金句勉勵收尾。`;
+
   try {
-    const res = await fetch(WORKER_URL, { method: 'POST', body: JSON.stringify({ question: `[實戰評分] 情境：${currentSituation}，學員回答：${val}` }) });
-    const data = await res.json();
-    typing.remove();
-    const scoreMatch = data.answer.match(/評分[：:]\s*(\d+)/);
+    const answer = await callAI(prompt);
+    if(typingRow) typingRow.remove();
+    
+    const scoreMatch = answer.match(/【評分】[：:]\s*(\d+)/);
     const score = scoreMatch ? parseInt(scoreMatch[1]) : 60;
-    addMessage(messages, 'ai', `🎯 實戰得分：${score} 分<br><br>${data.answer.replace(/\n/g, '<br>')}`, true);
+    let scoreClass = score >= 80 ? 'score-high' : score >= 60 ? 'score-mid' : 'score-low';
+    
+    const formattedAnswer = answer.replace(/\n/g, '<br>').replace(/【/g, '<strong style="color:var(--gold)">【').replace(/】/g, '】</strong>');
+    addMessage(messages, 'ai', `<span class="score-badge ${scoreClass}">🎯 實戰得分：${score} 分</span><br><br>${formattedAnswer}`, true);
     
     if (score > currentUser.exp) {
       currentUser.exp = score;
-      document.getElementById('expBadge').textContent = score + ' 分';
+      if(document.getElementById('expBadge')) document.getElementById('expBadge').textContent = score + ' 分';
       localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
       
-      try {
-        const finalUrl = `${GOOGLE_SHEET_URL}?action=update&username=${encodeURIComponent(currentUser.username)}&password=${encodeURIComponent(currentUser.password)}&name=${encodeURIComponent(currentUser.name)}&exp=${score}&_t=${new Date().getTime()}`;
-        fetch(finalUrl).then(() => setTimeout(renderLeaderboard, 1500));
-      } catch(e) {}
+      // 🛡️ 啟動腳本標籤上傳分數
+      const s = document.createElement('script');
+      s.src = `${GOOGLE_SHEET_URL}?action=update&username=${encodeURIComponent(currentUser.username)}&password=${encodeURIComponent(currentUser.password)}&name=${encodeURIComponent(currentUser.name)}&exp=${score}&_t=${new Date().getTime()}`;
+      document.body.appendChild(s);
+      
+      setTimeout(renderLeaderboard, 2000);
     }
-  } catch(e) { typing.innerHTML = '連線異常，請重試'; }
+  } catch(e) {
+    if(typingRow) typingRow.remove();
+    addMessage(messages, 'ai', `⚠️ <b>系統提示：</b> <br><span style="color:var(--red)">${e.message}</span>`, true);
+  }
+  if(sendBtn) sendBtn.disabled = false;
+  input.focus();
 }
 
 async function sendQA() {
@@ -354,15 +390,25 @@ async function sendQA() {
   const val = input.value.trim();
   if (!val) return;
   const messages = document.getElementById('qaMessages');
+  const sendBtn = document.getElementById('qaSend');
+
   addMessage(messages, 'user', val);
   input.value = '';
-  const typing = addMessage(messages, 'ai', '處經理回覆中...');
+  if(sendBtn) sendBtn.disabled = true;
+  const typingRow = addTyping(messages);
+
+  const prompt = `[主管萬事通模式] 同仁詢問：「${val}」。\n請用熱血且專業的語氣，提供教材中的具體 SOP 或比喻，結尾用威德金句勉勵。`;
+
   try {
-    const res = await fetch(WORKER_URL, { method: 'POST', body: JSON.stringify({ question: `[萬事通] 同仁問：${val}` }) });
-    const data = await res.json();
-    typing.remove();
-    addMessage(messages, 'ai', data.answer.replace(/\n/g, '<br>'), true);
-  } catch(e) { typing.innerHTML = '連線異常'; }
+    const answer = await callAI(prompt);
+    if(typingRow) typingRow.remove();
+    addMessage(messages, 'ai', answer.replace(/\n/g, '<br>').replace(/【/g, '<strong style="color:var(--gold)">【').replace(/】/g, '】</strong>'), true);
+  } catch(e) {
+    if(typingRow) typingRow.remove();
+    addMessage(messages, 'ai', `⚠️ <b>系統提示：</b> <br><span style="color:var(--red)">${e.message}</span>`, true);
+  }
+  if(sendBtn) sendBtn.disabled = false;
+  input.focus();
 }
 
 function addMessage(container, role, content, isHtml = false) {
@@ -371,6 +417,18 @@ function addMessage(container, role, content, isHtml = false) {
   const bubble = document.createElement('div');
   bubble.className = 'msg-bubble';
   if (isHtml) bubble.innerHTML = content; else bubble.textContent = content;
+  row.appendChild(bubble);
+  container.appendChild(row);
+  container.scrollTop = container.scrollHeight;
+  return row;
+}
+
+function addTyping(container) {
+  const row = document.createElement('div');
+  row.className = 'msg-row ai';
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
   row.appendChild(bubble);
   container.appendChild(row);
   container.scrollTop = container.scrollHeight;
