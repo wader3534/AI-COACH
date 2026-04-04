@@ -89,10 +89,13 @@
   .mobile-nav-item i { display: block; font-size: 1.4rem; margin-bottom: 4px; font-style: normal; }
   .mobile-nav-item.active { color: var(--gold); font-weight: bold; }
 
+  /* ===== 手機版介面優化 ===== */
   @media (max-width: 768px) { 
     #appContainer { grid-template-columns: 1fr; padding-bottom: 70px; } 
     aside { display: none; } 
     #mobileNav { display: flex; }
+    /* 🛡️ 將手機版對話泡泡的最大寬度增加到 92%，讓文字更寬敞 */
+    .msg-bubble { max-width: 92%; }
   }
 </style>
 </head>
@@ -135,8 +138,8 @@
     </div>
 
     <nav>
-      <div class="nav-item active" onclick="showView('practice')"><i>⚔️</i> 反對問題百科</div>
-      <div class="nav-item" onclick="showView('qa')"><i>🧠</i> 元捷萬事通</div>
+      <div class="nav-item active" onclick="showView('practice')"><i>⚔️</i> 反對實戰</div>
+      <div class="nav-item" onclick="showView('qa')"><i>🧠</i> 處經理萬事通</div>
       <div class="nav-item" onclick="logout()"><i>🚪</i> 登出系統</div>
     </nav>
   </aside>
@@ -235,7 +238,7 @@ function register() {
   localStorage.setItem(USER_DB_KEY, JSON.stringify(users));
 
   const url = `${GOOGLE_SHEET_URL}?action=update&username=${encodeURIComponent(u)}&password=${encodeURIComponent(p)}&name=${encodeURIComponent(name)}&exp=0`;
-  fetch(url).catch(err => console.error("雲端同步失敗", err));
+  fetch(url).then(() => { setTimeout(renderLeaderboard, 1500); }).catch(err => console.error("雲端同步失敗", err));
 
   alert('✅ 註冊成功！系統將為您自動登入。');
   currentUser = newUser;
