@@ -351,7 +351,7 @@ async function sendPractice() {
     }
   } catch(e) {
     typingRow.remove();
-    addMessage(messages, 'ai', '⚠️ 通訊異常。請確認您的 Cloudflare Worker 是否已正確部署。');
+    addMessage(messages, 'ai', '⚠️ 真實錯誤原因：' + e.message);
   }
   sendBtn.disabled = false;
   input.focus();
@@ -387,7 +387,7 @@ async function sendQA() {
     addMessage(messages, 'ai', formattedAnswer, true);
   } catch(e) {
     typingRow.remove();
-    addMessage(messages, 'ai', '⚠️ 通訊異常。請確認您的 Cloudflare Worker 是否已正確部署。');
+    addMessage(messages, 'ai', '⚠️ 真實錯誤原因：' + e.message);
   }
   sendBtn.disabled = false;
   input.focus();
