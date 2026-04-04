@@ -217,12 +217,9 @@ function register() {
   users.push(newUser);
   localStorage.setItem(USER_DB_KEY, JSON.stringify(users));
 
-  // 🛡️ 終極防彈版：使用 text/plain 發送，完美繞過 Google Sheets 的跨域阻擋
-  fetch(GOOGLE_SHEET_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ username: u, password: p, name: name, exp: 0 })
-  }).catch(err => console.error("雲端同步失敗", err));
+  // 🛡️ 終極解法：使用 GET 方法直接將參數掛在網址後面，100% 不會被 CORS 阻擋
+  const url = `${GOOGLE_SHEET_URL}?action=update&username=${encodeURIComponent(u)}&password=${encodeURIComponent(p)}&name=${encodeURIComponent(name)}&exp=0`;
+  fetch(url).catch(err => console.error("雲端同步失敗", err));
 
   alert('✅ 註冊成功！系統將為您自動登入。');
   currentUser = newUser;
@@ -291,7 +288,7 @@ async function renderLeaderboard() {
     });
   } catch (error) {
     console.error("排行榜連線錯誤", error);
-    if(list) list.innerHTML = '<div style="color:var(--red); font-size:0.8rem; text-align:center;">排行榜連線失敗，請稍後重試</div>';
+    if(list) list.innerHTML = '<div style="color:var(--red); font-size:0.8rem; text-align:center;">排行榜連線失敗，請確認 Google Sheets 設定</div>';
   }
 }
 
@@ -365,12 +362,9 @@ async function sendPractice() {
       localStorage.setItem(USER_DB_KEY, JSON.stringify(users));
       localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
       
-      // 🛡️ 終極防彈版上傳分數
-      fetch(GOOGLE_SHEET_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ username: currentUser.username, password: currentUser.password, name: currentUser.name, exp: score })
-      }).then(() => { setTimeout(renderLeaderboard, 1500); }).catch(err => console.error("分數上傳失敗", err));
+      // 🛡️ 終極防彈版：用 GET 方法將分數傳送至雲端
+      const url = `${GOOGLE_SHEET_URL}?action=update&username=${encodeURIComponent(currentUser.username)}&password=${encodeURIComponent(currentUser.password)}&name=${encodeURIComponent(currentUser.name)}&exp=${score}`;
+      fetch(url).then(() => { setTimeout(renderLeaderboard, 1500); }).catch(err => console.error("分數上傳失敗", err));
     }
     
     if (score >= 80) {
