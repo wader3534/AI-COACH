@@ -21,6 +21,7 @@
   .login-card input { width: 100%; padding: 12px; background: var(--dark3); border: 1px solid var(--dark4); color: white; border-radius: 8px; margin-bottom: 15px; outline: none; }
   .login-card button { width: 100%; padding: 12px; background: var(--gold); border: none; color: black; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.3s; }
   .login-card button:hover { background: var(--gold-light); }
+  .login-card button:disabled { background: var(--text-dim); cursor: not-allowed; }
   .switch-mode { margin-top: 15px; font-size: 0.9rem; cursor: pointer; color: var(--gold); transition: 0.3s; }
   .switch-mode:hover { color: white; }
 
@@ -63,7 +64,6 @@
   .msg-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem; flex-shrink: 0; }
   .msg-avatar.ai { background: var(--gold); color: black; }
   .msg-avatar.user-av { background: var(--dark4); color: white; border: 1px solid var(--text-dim); }
-  
   .msg-bubble { max-width: 75%; padding: 14px 20px; border-radius: 18px; line-height: 1.6; font-size: 0.95rem; }
   .user .msg-bubble { background: var(--gold); color: black; border-top-right-radius: 4px; }
   .ai .msg-bubble { background: var(--dark4); color: var(--text); border-top-left-radius: 4px; border: 1px solid #333; }
@@ -115,10 +115,10 @@
 
   <div class="login-card" id="registerBlock" style="display: none;">
     <h1>新人註冊</h1>
-    <input type="text" id="regName" placeholder="您的真實姓名/暱稱 (顯示用)">
-    <input type="text" id="regUsername" placeholder="設定登入帳號 (英文或數字)">
-    <input type="password" id="regPassword" placeholder="設定密碼" onkeypress="if(event.key==='Enter') register()">
-    <button onclick="register()">建立專屬帳號</button>
+    <input type="text" id="regName" placeholder="您的真實姓名/暱稱">
+    <input type="text" id="regUsername" placeholder="設定登入帳號">
+    <input type="password" id="regPassword" placeholder="設定密碼" onkeypress="if(event.key==='Enter') registerBtn(event)">
+    <button id="regSubmitBtn" onclick="registerBtn(event)">建立專屬帳號</button>
     <div class="switch-mode" onclick="toggleAuthMode('login')">🔙 已經有帳號了？返回登入</div>
   </div>
 </div>
@@ -137,7 +137,7 @@
     </div>
     <nav>
       <div class="nav-item active" onclick="showView('practice')"><i>⚔️</i> 銷售反對問題實戰</div>
-      <div class="nav-item" onclick="showView('qa')"><i>🧠</i> 元捷萬事通</div>
+      <div class="nav-item" onclick="showView('qa')"><i>🧠</i> 元捷主管萬事通</div>
       <div class="nav-item" onclick="logout()"><i>🚪</i> 登出系統</div>
     </nav>
   </aside>
@@ -212,20 +212,9 @@ function toggleAuthMode(m) {
   document.getElementById('registerBlock').style.display = m === 'register' ? 'block' : 'none';
 }
 
-// 🛡️ 隱形視窗強制寫入法 (100% 繞過阻擋)
-function syncToCloud(u, p, n, e) {
-  const finalUrl = `${GOOGLE_SHEET_URL}?action=update&username=${encodeURIComponent(u)}&password=${encodeURIComponent(p)}&name=${encodeURIComponent(n)}&exp=${e}&_t=${new Date().getTime()}`;
-  let iframe = document.getElementById('hiddenSyncFrame');
-  if(!iframe) {
-    iframe = document.createElement('iframe');
-    iframe.id = 'hiddenSyncFrame';
-    iframe.style.display = 'none';
-    document.body.appendChild(iframe);
-  }
-  iframe.src = finalUrl;
-}
-
-function register() {
+// 🛡️ 終極防凍結機制：等待雲端確實收到後再執行下一步
+async function registerBtn(e) {
+  if (e && e.key && e.key !== 'Enter') return;
   const n = document.getElementById('regName').value.trim();
   const u = document.getElementById('regUsername').value.trim();
   const p = document.getElementById('regPassword').value.trim();
@@ -234,14 +223,34 @@ function register() {
   let users = JSON.parse(localStorage.getItem(USER_DB_KEY)) || [];
   if (users.find(x => x.username === u)) { alert('❌ 帳號重複！'); return; }
 
+  // 按鈕變成連線中，防止連點
+  const btn = document.getElementById('regSubmitBtn');
+  const originalText = btn.innerText;
+  btn.innerText = '雲端連線中...';
+  btn.disabled = true;
+
   const newUser = { username: u, password: p, name: n, exp: 0 };
+
+  try {
+    const finalUrl = `${GOOGLE_SHEET_URL}?action=update&username=${encodeURIComponent(u)}&password=${encodeURIComponent(p)}&name=${encodeURIComponent(n)}&exp=0&_t=${new Date().getTime()}`;
+    // 強制等待 fetch 完成，才不會被 alert 凍結
+    await fetch(finalUrl); 
+  } catch (error) {
+    // 萬一 fetch 被擋，偷偷塞一個腳本標籤強行通關
+    console.log("嘗試強制寫入...");
+    const s = document.createElement('script');
+    s.src = `${GOOGLE_SHEET_URL}?action=update&username=${encodeURIComponent(u)}&password=${encodeURIComponent(p)}&name=${encodeURIComponent(n)}&exp=0&_t=${new Date().getTime()}`;
+    document.body.appendChild(s);
+  }
+
+  // 寫入本地資料庫
   users.push(newUser);
   localStorage.setItem(USER_DB_KEY, JSON.stringify(users));
 
-  // 🛡️ 啟動隱形視窗上傳資料
-  syncToCloud(u, p, n, 0);
-
   alert('✅ 註冊成功！系統將為您自動登入。');
+  btn.innerText = originalText;
+  btn.disabled = false;
+
   currentUser = newUser;
   localStorage.setItem(SESSION_KEY, JSON.stringify(newUser));
   loginSuccess();
@@ -308,7 +317,7 @@ function showView(viewId) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelectorAll('.mobile-nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById(viewId + 'View').classList.add('active');
-  if(event) event.currentTarget.classList.add('active');
+  if(event && event.currentTarget) event.currentTarget.classList.add('active');
 }
 
 async function sendPractice() {
@@ -331,9 +340,11 @@ async function sendPractice() {
       currentUser.exp = score;
       document.getElementById('expBadge').textContent = score + ' 分';
       localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
-      // 🛡️ 啟動隱形視窗同步分數
-      syncToCloud(currentUser.username, currentUser.password, currentUser.name, score);
-      setTimeout(renderLeaderboard, 2000);
+      
+      try {
+        const finalUrl = `${GOOGLE_SHEET_URL}?action=update&username=${encodeURIComponent(currentUser.username)}&password=${encodeURIComponent(currentUser.password)}&name=${encodeURIComponent(currentUser.name)}&exp=${score}&_t=${new Date().getTime()}`;
+        fetch(finalUrl).then(() => setTimeout(renderLeaderboard, 1500));
+      } catch(e) {}
     }
   } catch(e) { typing.innerHTML = '連線異常，請重試'; }
 }
