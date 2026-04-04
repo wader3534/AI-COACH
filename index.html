@@ -30,7 +30,7 @@
     overflow-x: hidden;
   }
 
-  /* ===== LOGIN ===== */
+  /* ===== LOGIN & REGISTER ===== */
   #loginPage {
     position: fixed; top:0; left:0; width:100%; height:100%;
     background: radial-gradient(circle at center, #222 0%, #000 100%);
@@ -52,6 +52,8 @@
     color: black; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.3s;
   }
   .login-card button:hover { background: var(--gold-light); }
+  .switch-mode { margin-top: 15px; font-size: 0.9rem; cursor: pointer; color: var(--gold); transition: 0.3s; }
+  .switch-mode:hover { color: white; }
 
   /* ===== APP LAYOUT ===== */
   #appContainer { display: none; height: 100vh; grid-template-columns: 280px 1fr; }
@@ -129,12 +131,22 @@
 <body>
 
 <div id="loginPage">
-  <div class="login-card">
+  <div class="login-card" id="loginBlock">
     <h1>元捷 AI 教官</h1>
-    <input type="text" id="username" placeholder="帳號">
-    <input type="password" id="password" placeholder="密碼" onkeypress="if(event.key==='Enter') login()">
+    <input type="text" id="username" placeholder="登入帳號">
+    <input type="password" id="password" placeholder="登入密碼" onkeypress="if(event.key==='Enter') login()">
     <button onclick="login()">進入道館</button>
-    <p style="margin-top:15px; font-size:0.8rem; color:var(--text-muted)">預設測試帳號：admin / yuanjie2024</p>
+    <div class="switch-mode" onclick="toggleAuthMode('register')">📝 夥伴首次使用？點此註冊專屬帳號</div>
+    <p style="margin-top:10px; font-size:0.8rem; color:var(--text-muted)">預設測試帳號：admin / yuanjie2024</p>
+  </div>
+
+  <div class="login-card" id="registerBlock" style="display: none;">
+    <h1>新人註冊</h1>
+    <input type="text" id="regName" placeholder="您的真實姓名/暱稱 (顯示用)">
+    <input type="text" id="regUsername" placeholder="設定登入帳號 (英文或數字)">
+    <input type="password" id="regPassword" placeholder="設定密碼" onkeypress="if(event.key==='Enter') register()">
+    <button onclick="register()">建立專屬帳號</button>
+    <div class="switch-mode" onclick="toggleAuthMode('login')">🔙 已經有帳號了？返回登入</div>
   </div>
 </div>
 
@@ -151,7 +163,7 @@
     <nav>
       <div class="nav-item active" onclick="showView('practice')"><i>⚔️</i> 反對實戰</div>
       <div class="nav-item" onclick="showView('qa')"><i>🧠</i> 處經理萬事通</div>
-      <div class="nav-item" onclick="logout()"><i>🚪</i> 登出</div>
+      <div class="nav-item" onclick="logout()"><i>🚪</i> 登出系統</div>
     </nav>
   </aside>
 
@@ -223,6 +235,47 @@ function initUsers() {
   }
 }
 
+// 介面切換：登入 vs 註冊
+function toggleAuthMode(mode) {
+  if (mode === 'register') {
+    document.getElementById('loginBlock').style.display = 'none';
+    document.getElementById('registerBlock').style.display = 'block';
+  } else {
+    document.getElementById('registerBlock').style.display = 'none';
+    document.getElementById('loginBlock').style.display = 'block';
+  }
+}
+
+// 註冊功能
+function register() {
+  const name = document.getElementById('regName').value.trim();
+  const u = document.getElementById('regUsername').value.trim();
+  const p = document.getElementById('regPassword').value.trim();
+
+  if (!name || !u || !p) {
+    alert('❌ 請填寫所有欄位（姓名、帳號、密碼）！');
+    return;
+  }
+
+  let users = JSON.parse(localStorage.getItem(USER_DB_KEY)) || [];
+
+  if (users.find(x => x.username === u)) {
+    alert('❌ 這個帳號已經被註冊過了，請換一個！');
+    return;
+  }
+
+  const newUser = { username: u, password: p, name: name, exp: 0 };
+  users.push(newUser);
+  localStorage.setItem(USER_DB_KEY, JSON.stringify(users));
+
+  alert('✅ 註冊成功！系統將為您自動登入。');
+  
+  // 註冊完自動登入
+  currentUser = newUser;
+  localStorage.setItem(SESSION_KEY, JSON.stringify(newUser));
+  loginSuccess();
+}
+
 function login() {
   const u = document.getElementById('username').value;
   const p = document.getElementById('password').value;
@@ -234,7 +287,7 @@ function login() {
     localStorage.setItem(SESSION_KEY, JSON.stringify(user));
     loginSuccess();
   } else {
-    alert('❌ 帳號或密碼錯誤');
+    alert('❌ 帳號或密碼錯誤，請重新輸入。');
   }
 }
 
@@ -244,7 +297,7 @@ function loginSuccess() {
   document.getElementById('appContainer').style.display = 'grid';
   document.getElementById('userName').textContent = currentUser.name;
   document.getElementById('expBadge').textContent = currentUser.exp + ' 分';
-  addMessage(document.getElementById('practiceMessages'), 'ai', `威德教官您好！準備好開始實戰了嗎？<br><br>請點選上方的關卡，當客戶說出反對問題時，輸入您的話術。`, true);
+  addMessage(document.getElementById('practiceMessages'), 'ai', `您好，${currentUser.name}！準備好開始實戰了嗎？<br><br>請點選上方的關卡，當客戶說出反對問題時，輸入您的話術。`, true);
 }
 
 function logout() {
