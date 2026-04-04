@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
 <title>元捷 AI 教官</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
@@ -63,7 +66,6 @@
   .msg-avatar.ai { background: var(--gold); color: black; }
   .msg-avatar.user-av { background: var(--dark4); color: white; border: 1px solid var(--text-dim); }
   
-  /* 電腦版的對話泡泡 (75%) */
   .msg-bubble { max-width: 75%; padding: 14px 20px; border-radius: 18px; line-height: 1.6; font-size: 0.95rem; }
   .user .msg-bubble { background: var(--gold); color: black; border-top-right-radius: 4px; }
   .ai .msg-bubble { background: var(--dark4); color: var(--text); border-top-left-radius: 4px; border: 1px solid #333; }
@@ -97,16 +99,13 @@
     aside { display: none; } 
     #mobileNav { display: flex; }
     
-    /* 1. 解除左右兩側的預設 40px 留白，讓畫面撐開 */
     .view { padding: 15px 10px; } 
-    
-    /* 2. 對話框微調，增加可視區域 */
     .chat-box { border-radius: 12px; margin-bottom: 10px; min-height: 450px; }
     .messages { padding: 15px 10px; }
     .input-group { padding: 15px 10px; }
     
-    /* 3. 讓對話泡泡變寬（90%），並微調字體方便閱讀 */
-    .msg-bubble { max-width: 90%; font-size: 1rem; padding: 12px 16px; }
+    /* 對話泡泡增寬到 92%，字體放大便於手機閱讀 */
+    .msg-bubble { max-width: 92%; font-size: 1rem; padding: 12px 16px; }
     .msg-avatar { width: 32px; height: 32px; font-size: 0.85rem; }
   }
 </style>
@@ -151,7 +150,7 @@
 
     <nav>
       <div class="nav-item active" onclick="showView('practice')"><i>⚔️</i> 反對實戰</div>
-      <div class="nav-item" onclick="showView('qa')"><i>🧠</i> 主管萬事通</div>
+      <div class="nav-item" onclick="showView('qa')"><i>🧠</i> 處經理萬事通</div>
       <div class="nav-item" onclick="logout()"><i>🚪</i> 登出系統</div>
     </nav>
   </aside>
@@ -249,8 +248,9 @@ function register() {
   users.push(newUser);
   localStorage.setItem(USER_DB_KEY, JSON.stringify(users));
 
-  const url = `${GOOGLE_SHEET_URL}?action=update&username=${encodeURIComponent(u)}&password=${encodeURIComponent(p)}&name=${encodeURIComponent(name)}&exp=0`;
-  fetch(url).then(() => { setTimeout(renderLeaderboard, 1500); }).catch(err => console.error("雲端同步失敗", err));
+  // 🛡️ 強制破除快取版：加入時間戳記，並且使用 no-cors 避免瀏覽器擋信
+  const url = `${GOOGLE_SHEET_URL}?action=update&username=${encodeURIComponent(u)}&password=${encodeURIComponent(p)}&name=${encodeURIComponent(name)}&exp=0&_t=${new Date().getTime()}`;
+  fetch(url, { mode: 'no-cors' }).catch(err => console.error("雲端同步失敗", err));
 
   alert('✅ 註冊成功！系統將為您自動登入。');
   currentUser = newUser;
@@ -293,7 +293,9 @@ async function renderLeaderboard() {
   list.innerHTML = '<div style="color:var(--text-muted); font-size:0.8rem; text-align:center;">連線同步中...</div>';
 
   try {
-    const res = await fetch(GOOGLE_SHEET_URL);
+    // 🛡️ 強制破除快取，獲取最新鮮的英雄榜
+    const url = `${GOOGLE_SHEET_URL}?_t=${new Date().getTime()}`;
+    const res = await fetch(url);
     const users = await res.json();
     list.innerHTML = '';
     
@@ -395,8 +397,9 @@ async function sendPractice() {
       localStorage.setItem(USER_DB_KEY, JSON.stringify(users));
       localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
       
-      const url = `${GOOGLE_SHEET_URL}?action=update&username=${encodeURIComponent(currentUser.username)}&password=${encodeURIComponent(currentUser.password)}&name=${encodeURIComponent(currentUser.name)}&exp=${score}`;
-      fetch(url).then(() => { setTimeout(renderLeaderboard, 1500); }).catch(err => console.error("分數上傳失敗", err));
+      // 🛡️ 強制破除快取版：上傳分數
+      const url = `${GOOGLE_SHEET_URL}?action=update&username=${encodeURIComponent(currentUser.username)}&password=${encodeURIComponent(currentUser.password)}&name=${encodeURIComponent(currentUser.name)}&exp=${score}&_t=${new Date().getTime()}`;
+      fetch(url, { mode: 'no-cors' }).then(() => { setTimeout(renderLeaderboard, 1500); }).catch(err => console.error("分數上傳失敗", err));
     }
     
     if (score >= 80) {
