@@ -63,6 +63,11 @@
   .side-header { padding: 30px 20px; text-align: center; border-bottom: 1px solid var(--dark4); }
   .side-header h2 { font-family: 'Noto Serif TC', serif; color: var(--gold); font-size: 1.5rem; }
   
+  .user-badge { margin: 20px 20px 0 20px; padding: 15px; background: var(--dark3); border-radius: 12px; border-left: 4px solid var(--gold); }
+  .user-badge small { color: var(--text-muted); display: block; margin-bottom: 4px; }
+  .user-badge .name { font-weight: bold; font-size: 1.1rem; }
+  .user-badge .exp { color: var(--gold-light); font-weight: bold; margin-top: 5px; font-size: 0.9rem; }
+
   .leaderboard-section { padding: 20px; border-bottom: 1px solid var(--dark4); }
   .lb-title { color: var(--gold); font-size: 0.95rem; font-weight: bold; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 8px;}
   .lb-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: var(--dark3); border-radius: 8px; margin-bottom: 8px; border-left: 4px solid var(--dark4); transition: 0.3s;}
@@ -158,6 +163,12 @@
       <h2>元捷通訊處</h2>
     </div>
     
+    <div class="user-badge">
+      <small>目前登入夥伴</small>
+      <div class="name" id="userName">載入中...</div>
+      <div class="exp" id="expBadge">0 分</div>
+    </div>
+
     <div class="leaderboard-section">
       <div class="lb-title">🏆 夥伴實力英雄榜</div>
       <div id="leaderboardList">
@@ -257,7 +268,7 @@ function toggleAuthMode(mode) {
   }
 }
 
-// 註冊功能 (包含雲端密碼同步)
+// 註冊功能 (包含防阻擋的雲端密碼同步)
 function register() {
   const name = document.getElementById('regName').value.trim();
   const u = document.getElementById('regUsername').value.trim();
@@ -279,16 +290,19 @@ function register() {
   users.push(newUser);
   localStorage.setItem(USER_DB_KEY, JSON.stringify(users));
 
-  // 註冊成功後，立刻把帳號、密碼、姓名同步上傳到 Google Sheets
+  // 🛡️ 使用 URLSearchParams 與 no-cors 強制突破跨域限制，確保帳號密碼寫入 Google Sheets
+  const formData = new URLSearchParams();
+  formData.append('username', u);
+  formData.append('password', p);
+  formData.append('name', name);
+  formData.append('exp', 0);
+
   fetch(GOOGLE_SHEET_URL, {
     method: 'POST',
-    body: JSON.stringify({
-      username: u,
-      password: p,
-      name: name,
-      exp: 0
-    })
-  }).catch(err => console.error("雲端密碼同步失敗", err));
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: formData
+  }).catch(err => console.error("雲端註冊同步失敗", err));
 
   alert('✅ 註冊成功！系統將為您自動登入。');
   
@@ -316,8 +330,12 @@ function loginSuccess() {
   document.getElementById('loginPage').style.opacity = '0';
   setTimeout(() => document.getElementById('loginPage').style.display = 'none', 500);
   document.getElementById('appContainer').style.display = 'grid';
-  document.getElementById('userName').textContent = currentUser.name;
-  document.getElementById('expBadge').textContent = currentUser.exp + ' 分';
+  
+  // 🛡️ 防呆：確保 DOM 元素存在才寫入
+  const userNameEl = document.getElementById('userName');
+  const expBadgeEl = document.getElementById('expBadge');
+  if(userNameEl) userNameEl.textContent = currentUser.name;
+  if(expBadgeEl) expBadgeEl.textContent = currentUser.exp + ' 分';
   
   renderLeaderboard();
   
@@ -334,6 +352,7 @@ function logout() {
 // ==========================================
 async function renderLeaderboard() {
   const list = document.getElementById('leaderboardList');
+  if(!list) return; // 防呆
   list.innerHTML = '<div style="color:var(--text-muted); font-size:0.8rem; text-align:center;">連線同步中...</div>';
 
   try {
@@ -365,7 +384,9 @@ async function renderLeaderboard() {
       // 同步更新自己畫面上方的分數 (以雲端最高分為準)
       if (isMe && u.exp > currentUser.exp) {
         currentUser.exp = u.exp;
-        document.getElementById('expBadge').textContent = u.exp + ' 分';
+        const expBadgeEl = document.getElementById('expBadge');
+        if(expBadgeEl) expBadgeEl.textContent = u.exp + ' 分';
+        
         localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
         
         // 更新本地端資料庫
@@ -379,12 +400,14 @@ async function renderLeaderboard() {
     });
   } catch (error) {
     console.error("無法載入雲端排行榜", error);
-    list.innerHTML = '<div style="color:var(--red); font-size:0.8rem; text-align:center;">排行榜連線失敗</div>';
+    if(list) list.innerHTML = '<div style="color:var(--red); font-size:0.8rem; text-align:center;">排行榜連線失敗</div>';
   }
 }
 
 function renderSituations() {
   const list = document.getElementById('situationList');
+  if(!list) return; // 防呆
+  list.innerHTML = ''; // 清空重新渲染
   OBJECTIONS.forEach(obj => {
     const card = document.createElement('div');
     card.className = 'situation-card' + (obj.title === currentSituation ? ' active' : '');
@@ -394,8 +417,10 @@ function renderSituations() {
       card.classList.add('active');
       currentSituation = obj.title;
       const msgs = document.getElementById('practiceMessages');
-      msgs.innerHTML = '';
-      addMessage(msgs, 'ai', `🎯 現在切換到關卡：<strong>【${currentSituation}】</strong><br>當客戶這樣說時，你會如何回應？`, true);
+      if(msgs) {
+        msgs.innerHTML = '';
+        addMessage(msgs, 'ai', `🎯 現在切換到關卡：<strong>【${currentSituation}】</strong><br>當客戶這樣說時，你會如何回應？`, true);
+      }
     };
     list.appendChild(card);
   });
@@ -404,8 +429,9 @@ function renderSituations() {
 function showView(viewId) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById(viewId + 'View').classList.add('active');
-  event.currentTarget.classList.add('active');
+  const targetView = document.getElementById(viewId + 'View');
+  if(targetView) targetView.classList.add('active');
+  if(event && event.currentTarget) event.currentTarget.classList.add('active');
 }
 
 // ==========================================
@@ -427,6 +453,7 @@ async function callAI(prompt) {
 // ==========================================
 async function sendPractice() {
   const input = document.getElementById('practiceInput');
+  if(!input) return;
   const val = input.value.trim();
   if (!val) return;
   
@@ -435,7 +462,7 @@ async function sendPractice() {
 
   addMessage(messages, 'user', val);
   input.value = '';
-  sendBtn.disabled = true;
+  if(sendBtn) sendBtn.disabled = true;
   const typingRow = addTyping(messages);
 
   const prompt = `[實戰評分模式] 
@@ -447,7 +474,7 @@ async function sendPractice() {
 
   try {
     const answer = await callAI(prompt);
-    typingRow.remove();
+    if(typingRow) typingRow.remove();
     
     const scoreMatch = answer.match(/【評分】[：:]\s*(\d+)/);
     const score = scoreMatch ? parseInt(scoreMatch[1]) : 60;
@@ -464,7 +491,8 @@ async function sendPractice() {
     // 如果這次得分比歷史最高分高，更新分數並傳送至雲端
     if (score > currentUser.exp) {
       currentUser.exp = score;
-      document.getElementById('expBadge').textContent = score + ' 分';
+      const expBadgeEl = document.getElementById('expBadge');
+      if(expBadgeEl) expBadgeEl.textContent = score + ' 分';
       
       // 1. 更新本地紀錄
       let users = JSON.parse(localStorage.getItem(USER_DB_KEY)) || [];
@@ -473,17 +501,21 @@ async function sendPractice() {
       localStorage.setItem(USER_DB_KEY, JSON.stringify(users));
       localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
       
-      // 2. 背景傳送至 Google Sheets 雲端 (不阻擋畫面)
+      // 2. 背景傳送至 Google Sheets 雲端 (使用防阻擋模式)
+      const formData = new URLSearchParams();
+      formData.append('username', currentUser.username);
+      formData.append('password', currentUser.password);
+      formData.append('name', currentUser.name);
+      formData.append('exp', score);
+
       fetch(GOOGLE_SHEET_URL, {
         method: 'POST',
-        body: JSON.stringify({
-          username: currentUser.username,
-          name: currentUser.name,
-          exp: score
-        })
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData
       }).then(() => {
-        // 成功上傳後，重新抓取並渲染最新排行榜
-        renderLeaderboard();
+        // 成功上傳後，延遲重整最新排行榜
+        setTimeout(renderLeaderboard, 1500); 
       }).catch(err => console.error("分數上傳雲端失敗", err));
     }
     
@@ -492,10 +524,10 @@ async function sendPractice() {
       setTimeout(() => { const el = document.getElementById('confetti'); if(el) el.remove(); }, 2000);
     }
   } catch(e) {
-    typingRow.remove();
-    addMessage(messages, 'ai', `⚠️ <b>真實錯誤原因：</b> <br><span style="color:var(--red)">${e.message}</span><br><br><small>👉 如果顯示 Failed to fetch，代表您的瀏覽器(如Brave/Safari)阻擋了連線，請換 Chrome 或用手機開啟。<br>👉 如果顯示 API 相關錯誤，代表 Cloudflare 的 Key 有問題。</small>`, true);
+    if(typingRow) typingRow.remove();
+    addMessage(messages, 'ai', `⚠️ <b>系統提示：</b> <br><span style="color:var(--red)">${e.message}</span>`, true);
   }
-  sendBtn.disabled = false;
+  if(sendBtn) sendBtn.disabled = false;
   input.focus();
 }
 
@@ -504,6 +536,7 @@ async function sendPractice() {
 // ==========================================
 async function sendQA() {
   const input = document.getElementById('qaInput');
+  if(!input) return;
   const val = input.value.trim();
   if (!val) return;
   
@@ -512,15 +545,14 @@ async function sendQA() {
 
   addMessage(messages, 'user', val);
   input.value = '';
-  sendBtn.disabled = true;
+  if(sendBtn) sendBtn.disabled = true;
   const typingRow = addTyping(messages);
 
-  const prompt = `[主管萬事通模式] 同仁詢問：「${val}」。
-請用熱血且專業的語氣，提供教材中的具體 SOP 或比喻，結尾用威德金句勉勵。`;
+  const prompt = `[主管萬事通模式] 同仁詢問：「${val}」。\n請用熱血且專業的語氣，提供教材中的具體 SOP 或比喻，結尾用威德金句勉勵。`;
 
   try {
     const answer = await callAI(prompt);
-    typingRow.remove();
+    if(typingRow) typingRow.remove();
     const formattedAnswer = answer
       .replace(/\n/g, '<br>')
       .replace(/【/g, '<strong style="color:var(--gold)">【')
@@ -528,10 +560,10 @@ async function sendQA() {
       
     addMessage(messages, 'ai', formattedAnswer, true);
   } catch(e) {
-    typingRow.remove();
-    addMessage(messages, 'ai', `⚠️ <b>真實錯誤原因：</b> <br><span style="color:var(--red)">${e.message}</span><br><br><small>👉 如果顯示 Failed to fetch，代表您的瀏覽器阻擋了連線。</small>`, true);
+    if(typingRow) typingRow.remove();
+    addMessage(messages, 'ai', `⚠️ <b>系統提示：</b> <br><span style="color:var(--red)">${e.message}</span>`, true);
   }
-  sendBtn.disabled = false;
+  if(sendBtn) sendBtn.disabled = false;
   input.focus();
 }
 
@@ -539,6 +571,7 @@ async function sendQA() {
 // 6. 聊天室 UI 工具
 // ==========================================
 function addMessage(container, role, content, isHtml = false) {
+  if(!container) return;
   const row = document.createElement('div');
   row.className = 'msg-row ' + role;
 
@@ -559,6 +592,7 @@ function addMessage(container, role, content, isHtml = false) {
 }
 
 function addTyping(container) {
+  if(!container) return null;
   const row = document.createElement('div');
   row.className = 'msg-row ai';
   
