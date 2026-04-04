@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>元捷 AI 教官</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #C9A84C;
+    --gold-light: #E8C96A;
+    --dark: #0D0D0D;
+    --dark2: #161616;
+    --dark3: #1E1E1E;
+    --dark4: #2A2A2A;
+    --text: #F0EDE8;
+    --text-muted: #888;
+    --text-dim: #555;
+    --red: #E85D4A;
+    --green: #4CAF7D;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--dark);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ===== LOGIN ===== */
+  #loginPage {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    background: var(--dark);
+  }
+
+  .login-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 20% 50%, rgba(201,168,76,0.06) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 60% at 80% 30%, rgba(201,168,76,0.04) 0%, transparent 60%);
+  }
+
+  .login-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(201,168,76,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(201,168,76,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  .login-card {
+    position: relative;
+    z-index: 10;
+    width: 380px;
+    padding: 48px 40px;
+    background: var(--dark2);
+    border: 1px solid rgba(201,168,76,0.2);
+    animation: fadeUp 0.6s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .login-logo {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  .login-logo .shield {
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    font-size: 24px;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  }
+
+  .login-logo h1 {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 0.1em;
+  }
+
+  .login-logo p {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    letter-spacing: 0.15em;
+  }
+
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--dark4);
+    margin-bottom: 28px;
+  }
+
+  .tab-btn {
+    flex: 1;
+    padding: 10px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-family: 'Noto Sans TC', sans-serif;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+
+  .tab-btn.active {
+    color: var(--gold);
+    border-bottom-color: var(--gold);
+  }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .field { margin-bottom: 16px; }
+
+  .field label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    letter-spacing: 0.05em;
+  }
+
+  .field input {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--dark3);
+    border: 1px solid var(--dark4);
+    color: var(--text);
+    font-size: 14px;
+    font-family: 'Noto Sans TC', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .field input:focus {
+    border-color: var(--gold);
+  }
+
+  .btn-gold {
+    width: 100%;
+    padding: 13px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    border: none;
+    color: var(--dark);
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'Noto Sans TC', sans-serif;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    margin-top: 8px;
+  }
+
+  .btn-gold:hover { opacity: 0.9; }
+
+  .error-msg {
+    color: var(--red);
+    font-size: 12px;
+    margin-top: 10px;
+    text-align: center;
+    min-height: 18px;
+  }
+
+  .success-msg {
+    color: var(--green);
+    font-size: 12px;
+    margin-top: 10px;
+    text-align: center;
+    min-height: 18px;
+  }
+
+  /* ===== MAIN APP ===== */
+  #appPage { display: none; min-height: 100vh; flex-direction: column; }
+  #appPage.show { display: flex; }
+
+  /* Top bar */
+  .topbar {
+    height: 56px;
+    background: var(--dark2);
+    border-bottom: 1px solid rgba(201,168,76,0.15);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+
+  .topbar-logo {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 15px;
+    color: var(--gold);
+    letter-spacing: 0.1em;
+    font-weight: 700;
+  }
+
+  .topbar-sep {
+    width: 1px;
+    height: 20px;
+    background: var(--dark4);
+  }
+
+  .mode-tabs {
+    display: flex;
+    gap: 4px;
+    flex: 1;
+  }
+
+  .mode-tab {
+    padding: 6px 16px;
+    background: none;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-family: 'Noto Sans TC', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .mode-tab.active {
+    border-color: rgba(201,168,76,0.4);
+    color: var(--gold);
+    background: rgba(201,168,76,0.05);
+  }
+
+  .mode-tab:hover:not(.active) {
+    color: var(--text);
+  }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+  }
+
+  .user-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .exp-badge {
+    background: rgba(201,168,76,0.1);
+    border: 1px solid rgba(201,168,76,0.3);
+    color: var(--gold);
+    font-size: 12px;
+    padding: 3px 10px;
+  }
+
+  .btn-logout {
+    padding: 6px 14px;
+    background: none;
+    border: 1px solid var(--dark4);
+    color: var(--text-muted);
+    font-size: 12px;
+    font-family: 'Noto Sans TC', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-logout:hover {
+    border-color: var(--red);
+    color: var(--red);
+  }
+
+  /* Main content */
+  .content {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* ===== CHAT MODE ===== */
+  .chat-layout {
+    display: none;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .chat-layout.active { display: flex; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 220px;
+    background: var(--dark2);
+    border-right: 1px solid rgba(201,168,76,0.1);
+    padding: 20px 0;
+    flex-shrink: 0;
+    overflow-y: auto;
+  }
+
+  .sidebar-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    padding: 0 16px;
+    margin-bottom: 8px;
+    margin-top: 16px;
+  }
+
+  .sidebar-label:first-child { margin-top: 0; }
+
+  .situation-btn {
+    width: 100%;
+    padding: 10px 16px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-family: 'Noto Sans TC', sans-serif;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-left: 2px solid transparent;
+  }
+
+  .situation-btn:hover {
+    color: var(--text);
+    background: rgba(255,255,255,0.03);
+  }
+
+  .situation-btn.active {
+    color: var(--gold);
+    border-left-color: var(--gold);
+    background: rgba(201,168,76,0.05);
+  }
+
+  .situation-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+  }
+
+  /* Chat main */
+  .chat-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .chat-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .chat-header-mode {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+  }
+
+  .chat-header-title {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .chat-messages::-webkit-scrollbar { width: 4px; }
+  .chat-messages::-webkit-scrollbar-track { background: transparent; }
+  .chat-messages::-webkit-scrollbar-thumb { background: var(--dark4); }
+
+  .msg-row {
+    display: flex;
+    gap: 12px;
+    animation: msgIn 0.3s ease;
+  }
+
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg-row.user { flex-direction: row-reverse; }
+
+  .msg-avatar {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .msg-avatar.ai {
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    color: var(--dark);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  }
+
+  .msg-avatar.user-av {
+    background: var(--dark3);
+    border: 1px solid var(--dark4);
+    color: var(--text-muted);
+    border-radius: 50%;
+    font-size: 11px;
+  }
+
+  .msg-bubble {
+    max-width: 72%;
+    padding: 14px 18px;
+    font-size: 14px;
+    line-height: 1.75;
+    color: var(--text);
+  }
+
+  .msg-row.ai .msg-bubble {
+    background: var(--dark2);
+    border: 1px solid rgba(201,168,76,0.12);
+    border-radius: 0 12px 12px 12px;
+  }
+
+  .msg-row.user .msg-bubble {
+    background: rgba(201,168,76,0.1);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 12px 0 12px 12px;
+  }
+
+  .score-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .score-high { background: rgba(76,175,125,0.15); color: var(--green); border: 1px solid rgba(76,175,125,0.3); }
+  .score-mid { background: rgba(201,168,76,0.15); color: var(--gold); border: 1px solid rgba(201,168,76,0.3); }
+  .score-low { background: rgba(232,93,74,0.15); color: var(--red); border: 1px solid rgba(232,93,74,0.3); }
+
+  .typing-indicator {
+    display: flex;
+    gap: 4px;
+    padding: 16px 18px;
+    background: var(--dark2);
+    border: 1px solid rgba(201,168,76,0.12);
+    border-radius: 0 12px 12px 12px;
+    width: fit-content;
+  }
+
+  .typing-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--gold);
+    border-radius: 50%;
+    animation: typing 1.2s infinite;
+  }
+
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes typing {
+    0%, 100% { opacity: 0.3; transform: translateY(0); }
+    50% { opacity: 1; transform: translateY(-4px); }
+  }
+
+  .chat-input-wrap {
+    padding: 16px 24px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    gap: 10px;
+  }
+
+  .chat-input {
+    flex: 1;
+    padding: 12px 16px;
+    background: var(--dark2);
+    border: 1px solid var(--dark4);
+    color: var(--text);
+    font-size: 14px;
+    font-family: 'Noto Sans TC', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+    resize: none;
+    height: 46px;
+  }
+
+  .chat-input:focus { border-color: rgba(201,168,76,0.4); }
+
+  .btn-send {
+    padding: 0 20px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    border: none;
+    color: var(--dark);
+    font-size: 18px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    flex-shrink: 0;
+  }
+
+  .btn-send:hover { opacity: 0.85; }
+  .btn-send:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ===== DOCS MODE ===== */
+  .docs-layout {
+    display: none;
+    flex: 1;
+    padding: 32px;
+    overflow-y: auto;
+  }
+
+  .docs-layout.active { display: block; }
+
+  .docs-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 20px;
+    color: var(--gold);
+    margin-bottom: 6px;
+  }
+
+  .docs-sub {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 28px;
+  }
+
+  .docs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+  }
+
+  .doc-card {
+    background: var(--dark2);
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 20px;
+    transition: border-color 0.2s;
+    cursor: pointer;
+  }
+
+  .doc-card:hover { border-color: rgba(201,168,76,0.3); }
+
+  .doc-card-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .doc-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    background: var(--dark3);
+    flex-shrink: 0;
+  }
+
+  .doc-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.4;
+  }
+
+  .doc-meta {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .doc-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 11px;
+    margin-top: 8px;
+  }
+
+  .tag-talk { background: rgba(76,175,125,0.1); color: var(--green); border: 1px solid rgba(76,175,125,0.2); }
+  .tag-product { background: rgba(232,93,74,0.1); color: var(--red); border: 1px solid rgba(232,93,74,0.2); }
+  .tag-train { background: rgba(201,168,76,0.1); color: var(--gold); border: 1px solid rgba(201,168,76,0.2); }
+  .tag-case { background: rgba(138,101,233,0.1); color: #A87EF0; border: 1px solid rgba(138,101,233,0.2); }
+
+  /* ===== ADMIN MODE ===== */
+  .admin-layout {
+    display: none;
+    flex: 1;
+    padding: 32px;
+    overflow-y: auto;
+  }
+
+  .admin-layout.active { display: block; }
+
+  .admin-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 20px;
+    color: var(--gold);
+    margin-bottom: 6px;
+  }
+
+  .admin-sub {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 28px;
+  }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .stat-card {
+    background: var(--dark2);
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 20px 24px;
+  }
+
+  .stat-label { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; letter-spacing: 0.05em; }
+  .stat-value { font-size: 28px; font-weight: 700; color: var(--gold); font-family: 'Noto Serif TC', serif; }
+
+  .member-table { width: 100%; border-collapse: collapse; }
+
+  .member-table th {
+    text-align: left;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--dark4);
+  }
+
+  .member-table td {
+    padding: 14px 16px;
+    font-size: 14px;
+    color: var(--text);
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+
+  .member-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .status-pill {
+    display: inline-block;
+    padding: 3px 10px;
+    font-size: 11px;
+  }
+
+  .status-active { background: rgba(76,175,125,0.1); color: var(--green); border: 1px solid rgba(76,175,125,0.2); }
+  .status-pending { background: rgba(201,168,76,0.1); color: var(--gold); border: 1px solid rgba(201,168,76,0.2); }
+
+  .avatar-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--dark3);
+    border: 1px solid var(--dark4);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+
+  /* Welcome msg */
+  .welcome-msg {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--text-muted);
+  }
+
+  .welcome-msg .big { font-family: 'Noto Serif TC', serif; font-size: 18px; color: var(--gold); margin-bottom: 8px; }
+  .welcome-msg .small { font-size: 13px; line-height: 1.8; }
+
+  @media (max-width: 600px) {
+    .sidebar { display: none; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .mode-tab { padding: 6px 10px; font-size: 12px; }
+    .topbar-logo { font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== LOGIN PAGE ===== -->
+<div id="loginPage">
+  <div class="login-bg"></div>
+  <div class="login-grid"></div>
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="shield">🛡</div>
+      <h1>元捷 AI 教官</h1>
+      <p>YUANJIE INTELLIGENT COACH</p>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('login')">帳號登入</button>
+      <button class="tab-btn" onclick="switchTab('register')">新人註冊</button>
+    </div>
+    <div id="loginPanel" class="tab-panel active">
+      <div class="field">
+        <label>帳號</label>
+        <input type="text" id="loginUser" placeholder="輸入您的帳號" />
+      </div>
+      <div class="field">
+        <label>密碼</label>
+        <input type="password" id="loginPw" placeholder="輸入密碼" onkeydown="if(event.key==='Enter')doLogin()" />
+      </div>
+      <button class="btn-gold" onclick="doLogin()">進入道館</button>
+      <div class="error-msg" id="loginError"></div>
+    </div>
+    <div id="registerPanel" class="tab-panel">
+      <div class="field">
+        <label>設定帳號</label>
+        <input type="text" id="regUser" placeholder="英文或數字" />
+      </div>
+      <div class="field">
+        <label>設定密碼</label>
+        <input type="password" id="regPw" placeholder="至少 6 個字" />
+      </div>
+      <div class="field">
+        <label>您的姓名</label>
+        <input type="text" id="regName" placeholder="顯示名稱" />
+      </div>
+      <button class="btn-gold" onclick="doRegister()">完成註冊</button>
+      <div class="success-msg" id="regMsg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== APP PAGE ===== -->
+<div id="appPage">
+  <div class="topbar">
+    <div class="topbar-logo">🛡 元捷 AI 教官</div>
+    <div class="topbar-sep"></div>
+    <div class="mode-tabs">
+      <button class="mode-tab active" onclick="switchMode('practice')">⚔️ 實戰演練</button>
+      <button class="mode-tab" onclick="switchMode('qa')">🧠 主管萬事通</button>
+      <button class="mode-tab" onclick="switchMode('docs')">📁 學習資料</button>
+      <button class="mode-tab" onclick="switchMode('admin')">👥 夥伴管理</button>
+    </div>
+    <div class="topbar-right">
+      <div class="user-badge">
+        <span id="userName">—</span>
+        <span class="exp-badge" id="expBadge">0 分</span>
+      </div>
+      <button class="btn-logout" onclick="doLogout()">登出</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- 實戰演練 -->
+    <div id="practiceMode" class="chat-layout active">
+      <div class="sidebar">
+        <div class="sidebar-label">選擇反對情境</div>
+        <button class="situation-btn active" onclick="selectSituation(this, '不需要')"><span class="situation-dot"></span>不需要</button>
+        <button class="situation-btn" onclick="selectSituation(this, '沒興趣')"><span class="situation-dot"></span>沒興趣</button>
+        <button class="situation-btn" onclick="selectSituation(this, '沒錢')"><span class="situation-dot"></span>沒錢</button>
+        <button class="situation-btn" onclick="selectSituation(this, '已買過')"><span class="situation-dot"></span>已買過</button>
+        <button class="situation-btn" onclick="selectSituation(this, '考慮中')"><span class="situation-dot"></span>考慮中</button>
+        <button class="situation-btn" onclick="selectSituation(this, '朋友做')"><span class="situation-dot"></span>朋友做</button>
+        <button class="situation-btn" onclick="selectSituation(this, '想拿底薪')"><span class="situation-dot"></span>想拿底薪</button>
+        <div class="sidebar-label" style="margin-top:24px;">說明</div>
+        <div style="padding:0 16px;font-size:12px;color:var(--text-dim);line-height:1.7;">
+          選擇情境後，輸入您的話術，AI 教官會嚴格評分並給出深度講評。
+        </div>
+      </div>
+      <div class="chat-main">
+        <div class="chat-header">
+          <div>
+            <div class="chat-header-mode">反對問題實戰演練</div>
+            <div class="chat-header-title" id="practiceTitle">情境：不需要</div>
+          </div>
+        </div>
+        <div class="chat-messages" id="practiceMessages">
+          <div class="msg-row ai">
+            <div class="msg-avatar ai">元</div>
+            <div class="msg-bubble">
+              歡迎來到實戰道館！<br><br>
+              請先從左側選擇反對情境，然後輸入您面對客戶時的回應話術。<br><br>
+              我會嚴格根據元捷教材評分，給您深度講評與威德金句！
+            </div>
+          </div>
+        </div>
+        <div class="chat-input-wrap">
+          <textarea class="chat-input" id="practiceInput" placeholder="輸入您的話術回應…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendPractice();}"></textarea>
+          <button class="btn-send" id="practiceSend" onclick="sendPractice()">➤</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 主管萬事通 -->
+    <div id="qaMode" class="chat-layout">
+      <div class="chat-main">
+        <div class="chat-header">
+          <div>
+            <div class="chat-header-mode">元捷主管萬事通</div>
+            <div class="chat-header-title">隨時詢問，威德主管在線！</div>
+          </div>
+        </div>
+        <div class="chat-messages" id="qaMessages">
+          <div class="msg-row ai">
+            <div class="msg-avatar ai">元</div>
+            <div class="msg-bubble">
+              同仁好！我是元捷主管的 AI 分身 🔥<br><br>
+              無論是話術、商品、增員、活動量管理，或者任何保險業務問題，儘管問！<br><br>
+              <strong style="color:var(--gold)">觀念若改，賓士隨你駛！</strong>
+            </div>
+          </div>
+        </div>
+        <div class="chat-input-wrap">
+          <textarea class="chat-input" id="qaInput" placeholder="詢問主管任何問題…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendQA();}"></textarea>
+          <button class="btn-send" id="qaSend" onclick="sendQA()">➤</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 學習資料 -->
+    <div id="docsMode" class="docs-layout">
+      <div class="docs-title">學習資料庫</div>
+      <div class="docs-sub">元捷通訊處核心教材 · 隨時複習</div>
+      <div class="docs-grid">
+        <div class="doc-card">
+          <div class="doc-card-top">
+            <div class="doc-icon">📄</div>
+            <div>
+              <div class="doc-name">開場白與自我介紹話術</div>
+              <div class="doc-meta">話術腳本</div>
+            </div>
+          </div>
+          <span class="doc-tag tag-talk">話術</span>
+        </div>
+        <div class="doc-card">
+          <div class="doc-card-top">
+            <div class="doc-icon">📄</div>
+            <div>
+              <div class="doc-name">異議處理標準腳本 v3</div>
+              <div class="doc-meta">話術腳本</div>
+            </div>
+          </div>
+          <span class="doc-tag tag-talk">話術</span>
+        </div>
+        <div class="doc-card">
+          <div class="doc-card-top">
+            <div class="doc-icon">📑</div>
+            <div>
+              <div class="doc-name">終身壽險商品說明書</div>
+              <div class="doc-meta">保險商品資料</div>
+            </div>
+          </div>
+          <span class="doc-tag tag-product">商品</span>
+        </div>
+        <div class="doc-card">
+          <div class="doc-card-top">
+            <div class="doc-icon">📑</div>
+            <div>
+              <div class="doc-name">重大疾病險比較表</div>
+              <div class="doc-meta">保險商品資料</div>
+            </div>
+          </div>
+          <span class="doc-tag tag-product">商品</span>
+        </div>
+        <div class="doc-card">
+          <div class="doc-card-top">
+            <div class="doc-icon">📊</div>
+            <div>
+              <div class="doc-name">新人訓練課程 Q1</div>
+              <div class="doc-meta">教育訓練簡報</div>
+            </div>
+          </div>
+          <span class="doc-tag tag-train">訓練</span>
+        </div>
+        <div class="doc-card">
+          <div class="doc-card-top">
+            <div class="doc-icon">📊</div>
+            <div>
+              <div class="doc-name">高績效業務心法分享</div>
+              <div class="doc-meta">教育訓練簡報</div>
+            </div>
+          </div>
+          <span class="doc-tag tag-train">訓練</span>
+        </div>
+        <div class="doc-card">
+          <div class="doc-card-top">
+            <div class="doc-icon">📖</div>
+            <div>
+              <div class="doc-name">萱萱案例：理賠的意義</div>
+              <div class="doc-meta">案例分析</div>
+            </div>
+          </div>
+          <span class="doc-tag tag-case">案例</span>
+        </div>
+        <div class="doc-card">
+          <div class="doc-card-top">
+            <div class="doc-icon">📖</div>
+            <div>
+              <div class="doc-name">長照案例：阿嬤的尊嚴</div>
+              <div class="doc-meta">案例分析</div>
+            </div>
+          </div>
+          <span class="doc-tag tag-case">案例</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 夥伴管理 -->
+    <div id="adminMode" class="admin-layout">
+      <div class="admin-title">夥伴管理</div>
+      <div class="admin-sub">元捷通訊處成員總覽</div>
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">總夥伴數</div>
+          <div class="stat-value">12</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">本月活躍</div>
+          <div class="stat-value">9</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">待審核</div>
+          <div class="stat-value">2</div>
+        </div>
+      </div>
+      <table class="member-table">
+        <thead>
+          <tr>
+            <th>姓名</th>
+            <th>職級</th>
+            <th>最高分</th>
+            <th>狀態</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="avatar-circle">王</span>王小明</td><td>資深業務</td><td style="color:var(--gold)">92</td><td><span class="status-pill status-active">啟用</span></td></tr>
+          <tr><td><span class="avatar-circle">林</span>林美玲</td><td>業務專員</td><td style="color:var(--gold)">85</td><td><span class="status-pill status-active">啟用</span></td></tr>
+          <tr><td><span class="avatar-circle">陳</span>陳志豪</td><td>新人業務</td><td style="color:var(--gold)">70</td><td><span class="status-pill status-pending">待審核</span></td></tr>
+          <tr><td><span class="avatar-circle">張</span>張雅惠</td><td>業務專員</td><td style="color:var(--gold)">88</td><td><span class="status-pill status-active">啟用</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ===== 設定 =====
+const WORKER_URL = "https://weathered-limit-374ayuanjie-ai.wader3534.workers.dev";
+
+// 簡易本地帳號系統（之後可換成 Google Sheets）
+const USERS_KEY = "yuanjie_users";
+const SESSION_KEY = "yuanjie_session";
+
+function getUsers() {
+  return JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+}
+
+function saveUsers(users) {
+  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+}
+
+// 預設管理員帳號
+(function initAdmin() {
+  const users = getUsers();
+  if (!users.find(u => u.username === 'admin')) {
+    users.push({ username: 'admin', password: 'yuanjie2024', name: '威德主管', exp: 999, role: 'admin' });
+    saveUsers(users);
+  }
+})();
+
+// ===== 登入邏輯 =====
+let currentUser = null;
+let currentSituation = '不需要';
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', (i === 0) === (tab === 'login'));
+  });
+  document.getElementById('loginPanel').classList.toggle('active', tab === 'login');
+  document.getElementById('registerPanel').classList.toggle('active', tab === 'register');
+}
+
+function doLogin() {
+  const user = document.getElementById('loginUser').value.trim();
+  const pw = document.getElementById('loginPw').value.trim();
+  const users = getUsers();
+  const found = users.find(u => u.username === user && u.password === pw);
+  if (found) {
+    currentUser = found;
+    localStorage.setItem(SESSION_KEY, JSON.stringify(found));
+    showApp();
+  } else {
+    document.getElementById('loginError').textContent = '❌ 帳號或密碼錯誤';
+  }
+}
+
+function doRegister() {
+  const user = document.getElementById('regUser').value.trim();
+  const pw = document.getElementById('regPw').value.trim();
+  const name = document.getElementById('regName').value.trim();
+  const msg = document.getElementById('regMsg');
+  if (!user || !pw || !name) { msg.textContent = '請填寫所有欄位'; msg.style.color = 'var(--red)'; return; }
+  if (pw.length < 6) { msg.textContent = '密碼至少 6 個字'; msg.style.color = 'var(--red)'; return; }
+  const users = getUsers();
+  if (users.find(u => u.username === user)) { msg.textContent = '此帳號已存在'; msg.style.color = 'var(--red)'; return; }
+  users.push({ username: user, password: pw, name, exp: 0, role: 'member' });
+  saveUsers(users);
+  msg.textContent = '🎉 註冊成功！請切換到登入分頁';
+  msg.style.color = 'var(--green)';
+}
+
+function showApp() {
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('appPage').classList.add('show');
+  document.getElementById('userName').textContent = currentUser.name;
+  document.getElementById('expBadge').textContent = currentUser.exp + ' 分';
+}
+
+function doLogout() {
+  localStorage.removeItem(SESSION_KEY);
+  currentUser = null;
+  document.getElementById('loginPage').style.display = 'flex';
+  document.getElementById('appPage').classList.remove('show');
+}
+
+// 自動登入
+(function autoLogin() {
+  const saved = localStorage.getItem(SESSION_KEY);
+  if (saved) {
+    try {
+      const u = JSON.parse(saved);
+      const users = getUsers();
+      const fresh = users.find(x => x.username === u.username);
+      if (fresh) { currentUser = fresh; showApp(); }
+    } catch(e) {}
+  }
+})();
+
+// ===== 模式切換 =====
+function switchMode(mode) {
+  document.querySelectorAll('.mode-tab').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('practiceMode').classList.toggle('active', mode === 'practice');
+  document.getElementById('qaMode').classList.toggle('active', mode === 'qa');
+  document.getElementById('docsMode').classList.toggle('active', mode === 'docs');
+  document.getElementById('adminMode').classList.toggle('active', mode === 'admin');
+}
+
+function selectSituation(btn, sit) {
+  document.querySelectorAll('.situation-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentSituation = sit;
+  document.getElementById('practiceTitle').textContent = '情境：' + sit;
+}
+
+// ===== 知識庫摘要（精簡版，完整版在 Worker 端可擴充）=====
+const BRAIN_SUMMARY = `你是元捷通訊處的 AI 教官，以下是核心教材重點：
+
+【反對問題標準回覆】
+- 不需要：同步觀念，釐清不需買vs不需再買，備胎比喻，印鈔機比喻
+- 沒興趣：保險非興趣，印鈔機比喻，解決生老病死普通問題
+- 沒錢：理財矩陣10%保全觀念，三五千也可以，借一張紙
+- 已買過：切入保單健診，確認當初規劃是否解決現在問題
+- 考慮中：費率對照，現在vs五年後，建立危機意識
+- 朋友做：稱讚朋友，強調元捷系統化服務與專業理賠案例
+- 想拿底薪：禁止說底薪！強調創業平台，利潤在自己身上，透明晉升
+
+【核心話術工具】
+- 理財矩陣：40%生活+30%理財+20%債務+10%保險，借一張紙降壓
+- FACT：F事實→A情感→C選擇→T行動
+- 印鈔機比喻：人就是印鈔機，保險保護這台機器
+- 339指標：每日3訪3名單9通電訪
+- 威德金句：觀念若改賓士隨你駛、量大人瀟灑、人生不是得到就是學到
+
+【地雷紅線】嚴禁說底薪、私下金流、低保額規劃、代簽、節稅不實招攬`;
+
+// ===== AI 呼叫 =====
+async function callAI(prompt) {
+  const res = await fetch(WORKER_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question: prompt })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data.answer;
+}
+
+// ===== 實戰演練 =====
+async function sendPractice() {
+  const input = document.getElementById('practiceInput');
+  const val = input.value.trim();
+  if (!val) return;
+
+  const messages = document.getElementById('practiceMessages');
+  const sendBtn = document.getElementById('practiceSend');
+
+  addMessage(messages, 'user', val);
+  input.value = '';
+  sendBtn.disabled = true;
+
+  const typingRow = addTyping(messages);
+
+  const prompt = `${BRAIN_SUMMARY}
+
+你現在是嚴格的元捷教官。
+針對反對情境「${currentSituation}」，學員回答：「${val}」
+
+請嚴格按照以下格式回覆：
+【評分】：0-100分（只寫數字）
+【深度講評】：300字以上，分析是否命中教材關鍵字，是否使用正確比喻和話術邏輯
+【改進建議】：具體說明如何改進
+【威德金句】：用一句激勵語收尾
+
+注意：若出現底薪、節稅、私下金流等地雷，直接斥責並給低分。`;
+
+  try {
+    const answer = await callAI(prompt);
+    typingRow.remove();
+
+    // 解析分數
+    const scoreMatch = answer.match(/【評分】[：:]\s*(\d+)/);
+    const score = scoreMatch ? parseInt(scoreMatch[1]) : 60;
+
+    let scoreClass = score >= 80 ? 'score-high' : score >= 60 ? 'score-mid' : 'score-low';
+    let scoreLabel = score >= 80 ? '🏆 ' + score + ' 分' : score >= 60 ? '📊 ' + score + ' 分' : '⚠️ ' + score + ' 分';
+
+    const html = `<span class="score-badge ${scoreClass}">${scoreLabel}</span><br>${answer.replace(/【/g, '<br><strong style="color:var(--gold)">【').replace(/】/g, '】</strong>')}`;
+    addMessage(messages, 'ai', html, true);
+
+    // 更新分數
+    if (score > currentUser.exp) {
+      currentUser.exp = score;
+      const users = getUsers();
+      const idx = users.findIndex(u => u.username === currentUser.username);
+      if (idx >= 0) { users[idx].exp = score; saveUsers(users); }
+      localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
+      document.getElementById('expBadge').textContent = score + ' 分';
+    }
+
+    if (score >= 80) {
+      setTimeout(() => {
+        addMessage(messages, 'ai', '🎉 太厲害了！得分 80 分以上，繼續保持這個水準！量大人瀟灑！');
+      }, 500);
+    }
+
+  } catch(e) {
+    typingRow.remove();
+    addMessage(messages, 'ai', '⚠️ 連線異常，請稍後再試。');
+  }
+
+  sendBtn.disabled = false;
+}
+
+// ===== 主管萬事通 =====
+async function sendQA() {
+  const input = document.getElementById('qaInput');
+  const val = input.value.trim();
+  if (!val) return;
+
+  const messages = document.getElementById('qaMessages');
+  const sendBtn = document.getElementById('qaSend');
+
+  addMessage(messages, 'user', val);
+  input.value = '';
+  sendBtn.disabled = true;
+
+  const typingRow = addTyping(messages);
+
+  const prompt = `${BRAIN_SUMMARY}
+
+你是元捷主管的 AI 分身，個性熱血、專業、有溫度。
+同仁問：「${val}」
+
+請這樣回答：
+1. 提供教材中的具體 SOP 或技巧（如 FACT 四步驟、曼陀羅八大來源、339 指標等）
+2. 引用具體比喻（備胎、印鈔機、理財矩陣等）讓對方秒懂
+3. 結尾用威德金句勉勵
+語氣要熱血真誠，像是主管在旁邊親自指導。`;
+
+  try {
+    const answer = await callAI(prompt);
+    typingRow.remove();
+    addMessage(messages, 'ai', answer.replace(/【/g, '<br><strong style="color:var(--gold)">【').replace(/】/g, '】</strong>'), true);
+  } catch(e) {
+    typingRow.remove();
+    addMessage(messages, 'ai', '⚠️ 連線異常，請稍後再試。');
+  }
+
+  sendBtn.disabled = false;
+}
+
+// ===== 工具函數 =====
+function addMessage(container, role, content, isHtml = false) {
+  const row = document.createElement('div');
+  row.className = 'msg-row ' + role;
+
+  const avatar = document.createElement('div');
+  avatar.className = 'msg-avatar ' + (role === 'ai' ? 'ai' : 'user-av');
+  avatar.textContent = role === 'ai' ? '元' : (currentUser?.name?.[0] || '我');
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  if (isHtml) bubble.innerHTML = content;
+  else bubble.textContent = content;
+
+  row.appendChild(avatar);
+  row.appendChild(bubble);
+  container.appendChild(row);
+  container.scrollTop = container.scrollHeight;
+  return row;
+}
+
+function addTyping(container) {
+  const row = document.createElement('div');
+  row.className = 'msg-row ai';
+  row.innerHTML = `
+    <div class="msg-avatar ai">元</div>
+    <div class="typing-indicator">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>`;
+  container.appendChild(row);
+  container.scrollTop = container.scrollHeight;
+  return row;
+}
+</script>
+</body>
+</html>
